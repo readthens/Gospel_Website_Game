@@ -1,0 +1,166 @@
+:root {
+  color: #21170d;
+  background:
+    radial-gradient(circle at top, rgba(235, 218, 177, 0.2), transparent 34%),
+    radial-gradient(circle at 80% 82%, rgba(140, 185, 156, 0.16), transparent 28%),
+    linear-gradient(180deg, #d7c29b 0%, #c8b084 34%, #7d8e67 100%);
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  line-height: 1.5;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --shell-surface: rgba(247, 241, 226, 0.82);
+  --shell-border: rgba(63, 42, 20, 0.16);
+  --shell-ink: #2b2013;
+  --shell-soft: #645240;
+  --shell-accent: #8d693a;
+  --shell-shadow: rgba(47, 31, 14, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--shell-ink);
+  background-attachment: fixed;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(87, 62, 34, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(87, 62, 34, 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+  content: "";
+  pointer-events: none;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+
+.app-header,
+.game-panel {
+  border: 1px solid var(--shell-border);
+  border-radius: 24px;
+  box-shadow: 0 24px 54px var(--shell-shadow);
+  overflow: hidden;
+}
+
+.app-header {
+  padding: 1rem 1.15rem;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 242, 0.88), rgba(240, 230, 209, 0.8)),
+    var(--shell-surface);
+  backdrop-filter: blur(12px);
+}
+
+.eyebrow {
+  margin: 0 0 0.3rem;
+  color: var(--shell-accent);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 700;
+}
+
+.shell-copy {
+  margin: 0.45rem 0 0;
+  max-width: 64ch;
+  color: var(--shell-soft);
+  font-size: 0.98rem;
+}
+
+.game-panel {
+  padding: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(26, 34, 33, 0.92), rgba(38, 28, 17, 0.96)),
+    #1c1510;
+  display: flex;
+  justify-content: center;
+}
+
+.phaser-frame {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.phaser-mount {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 241, 210, 0.1);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(124, 150, 157, 0.28), rgba(31, 23, 15, 0.18)),
+    #0d1716;
+  aspect-ratio: 16 / 9;
+}
+
+.phaser-mount canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.mobile-note {
+  display: none;
+  margin: 0;
+  color: rgba(35, 25, 13, 0.8);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(63, 42, 20, 0.12);
+  border-radius: 999px;
+  background: rgba(250, 244, 229, 0.72);
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding: 0.85rem;
+  }
+
+  .app-header,
+  .game-panel {
+    border-radius: 18px;
+  }
+
+  .app-header {
+    padding: 0.9rem 0.95rem;
+  }
+
+  .shell-copy {
+    font-size: 0.92rem;
+  }
+
+  .mobile-note {
+    display: block;
+  }
+}
