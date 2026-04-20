@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import ChallengeBox from '../prefabs/ChallengeBox';
 import DialogueBox from '../prefabs/DialogueBox';
 import ObjectivePanel from '../prefabs/ObjectivePanel';
 import { TASK_IDS, WORLD_FLAGS, WORLD_LAYOUT } from '../data/layout';
@@ -316,6 +317,8 @@ export class UIScene extends Phaser.Scene {
     this.objectiveNoticeOwnsPause = false;
     this.activePrompt = null;
     this.currentDialogueSignature = null;
+    this.currentChallengeSignature = null;
+    this.currentChallengeSnapshot = null;
     this.lastObjectiveNotice = null;
     this.currentObjectiveText = DEFAULT_OBJECTIVE;
     this.advanceInputCooldownUntil = 0;
@@ -325,6 +328,7 @@ export class UIScene extends Phaser.Scene {
     this.gameState = resolveSharedValue(this, data, ['gameState', 'GameState', 'sharedState', 'state']);
     this.dialogueSystem = data.dialogueSystem || resolveSharedValue(this, data, ['dialogueSystem', 'DialogueSystem']);
     this.taskSystem = data.taskSystem || resolveSharedValue(this, data, ['taskSystem', 'TaskSystem']);
+    this.challengeSystem = data.challengeSystem || resolveSharedValue(this, data, ['challengeSystem', 'ChallengeSystem']);
 
     this.buildOverlay();
     this.bindInput();
@@ -399,6 +403,24 @@ export class UIScene extends Phaser.Scene {
       Math.min(920, width - 36),
       Math.min(196, Math.max(170, height * 0.24)),
     );
+
+    this.challengeDim = this.add.rectangle(0, 0, width, height, 0x04080d, 0);
+    this.challengeDim.setOrigin(0, 0);
+    this.challengeDim.setAlpha(0);
+    this.challengeDim.setVisible(false);
+    this.challengeDim.setScrollFactor(0);
+    this.challengeDim.setDepth(29);
+
+    this.challengeBox = new ChallengeBox(
+      this,
+      width / 2,
+      height * 0.56,
+      Math.min(700, width - 36),
+      Math.min(470, height - 88),
+    );
+    this.challengeBox.setChoiceHandler((index) => {
+      this.getChallengeSystem()?.submitSelection?.(index);
+    });
 
     this.objectivePanel = new ObjectivePanel(this, 16, 16, Math.min(368, width - 32), {
       objective: DEFAULT_OBJECTIVE,
@@ -575,6 +597,43 @@ export class UIScene extends Phaser.Scene {
 
   bindInput() {
     this.advanceHandler = (event) => {
+      const challengeSystem = this.getChallengeSystem();
+      const challengeSnapshot = challengeSystem?.getSnapshot?.() || this.currentChallengeSnapshot;
+
+      if (challengeSnapshot?.active) {
+        if (challengeSnapshot.type === 'choiceQuiz') {
+          if (event.code === 'ArrowUp' || event.code === 'KeyW') {
+            event.preventDefault();
+            challengeSystem.moveSelection?.(-1);
+            return;
+          }
+
+          if (event.code === 'ArrowDown' || event.code === 'KeyS') {
+            event.preventDefault();
+            challengeSystem.moveSelection?.(1);
+            return;
+          }
+
+          if ((event.code === 'Enter' || event.code === 'Space') && !event.repeat) {
+            event.preventDefault();
+            challengeSystem.submitSelection?.();
+          }
+          return;
+        }
+
+        if (
+          challengeSnapshot.type === 'actionMeter'
+          && !event.repeat
+          && ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(event.code)
+        ) {
+          event.preventDefault();
+          challengeSystem.registerMeterInput?.(event.code, Date.now());
+          return;
+        }
+
+        return;
+      }
+
       const interactiveKeys = ['Space', 'Enter'];
       const isInteractiveKey = interactiveKeys.includes(event.code);
 
@@ -625,12 +684,15 @@ export class UIScene extends Phaser.Scene {
           [['ui:prompt:hide'], this.hideInteractionPrompt.bind(this)],
           [['ui:dialogue:show'], this.showDialogue.bind(this)],
           [['ui:dialogue:hide'], this.hideDialogue.bind(this)],
+          [['ui:challenge:show', 'ui:challenge:update'], this.showChallenge.bind(this)],
+          [['ui:challenge:hide'], this.hideChallenge.bind(this)],
           [['ui:narration:show'], this.showNarration.bind(this)],
           [['ui:narration:hide'], this.hideNarration.bind(this)],
           [['run:reset', 'ui:reset'], this.resetUI.bind(this)],
           [['gameplay:objective'], this.handleObjectiveEvent.bind(this)],
           [['gameplay:objective-reminder'], this.handleObjectiveReminder.bind(this)],
           [['gameplay:task-complete'], this.handleTaskComplete.bind(this)],
+          [['gameplay:challenge-complete'], this.handleChallengeComplete.bind(this)],
           [['world:revealShadow'], this.handleCanalReveal.bind(this)],
           [['world:startWater'], this.handleWaterStart.bind(this)],
           [['world:unlockEnding'], this.handleEndingUnlock.bind(this)],
@@ -653,6 +715,7 @@ export class UIScene extends Phaser.Scene {
     const tasks = ui.tasks || taskSnapshot || state.tasks || state.taskProgress || DEFAULT_TASKS;
     const prompt = ui.interactionPrompt || state.interactionPrompt || null;
     const dialogue = ui.dialogue || state.dialogue || null;
+    const challenge = ui.challenge || state.challenge || null;
     const narration = ui.narration || state.narration || null;
 
     this.setObjective(objective);
@@ -668,6 +731,12 @@ export class UIScene extends Phaser.Scene {
       this.showDialogue(dialogue);
     } else {
       this.hideDialogue(true);
+    }
+
+    if (challenge && (challenge.active || challenge.challengeId)) {
+      this.showChallenge(challenge);
+    } else {
+      this.hideChallenge(true);
     }
 
     if (narration && (narration.visible || narration.text || narration.body)) {
@@ -699,6 +768,14 @@ export class UIScene extends Phaser.Scene {
 
     const tasks = payload?.tasks || payload;
     this.objectivePanel.setTasks(normalizeTasks(tasks));
+  }
+
+  getChallengeSystem() {
+    if (!this.challengeSystem) {
+      this.challengeSystem = resolveSharedValue(this, {}, ['challengeSystem', 'ChallengeSystem']);
+    }
+
+    return this.challengeSystem;
   }
 
   setTaskProgress(payload) {
@@ -819,6 +896,7 @@ export class UIScene extends Phaser.Scene {
       || this.objectiveNoticeActive
       || this.objectiveNoticeContainer.visible
       || this.dialogueBox.visible
+      || this.challengeBox.visible
       || this.narrationText.alpha > 0.02
     ) {
       this.setDirectionGuideVisible(false);
@@ -928,6 +1006,71 @@ export class UIScene extends Phaser.Scene {
     const shouldHideInstantly = typeof instant === 'boolean' ? instant : Boolean(instant?.instant);
     this.currentDialogueSignature = null;
     this.dialogueBox.hide(shouldHideInstantly);
+  }
+
+  showChallenge(payload) {
+    if (payload?.state) {
+      this.syncFromState(payload.state);
+      return;
+    }
+
+    if (!payload?.active && !payload?.challengeId) {
+      this.hideChallenge();
+      return;
+    }
+
+    const signature = [
+      payload.challengeId || '',
+      payload.roundIndex ?? '',
+      payload.selectedIndex ?? '',
+      payload.meterProgress ?? '',
+      payload.timeRemainingMs ?? '',
+    ].join('::');
+
+    this.currentChallengeSnapshot = payload;
+    this.currentChallengeSignature = signature;
+    this.hideDialogue(true);
+    this.hideInteractionPrompt(true);
+
+    const shouldAnimateIn = !this.challengeBox.visible;
+    this.challengeDim.setVisible(true);
+    this.challengeBox.show(payload);
+
+    if (shouldAnimateIn || this.challengeDim.alpha < 0.84) {
+      this.tweens.killTweensOf(this.challengeDim);
+      this.tweens.add({
+        targets: this.challengeDim,
+        alpha: 0.86,
+        duration: 140,
+        ease: 'Quad.easeOut',
+      });
+    }
+  }
+
+  hideChallenge(instant = false) {
+    const shouldHideInstantly = typeof instant === 'boolean' ? instant : Boolean(instant?.instant);
+
+    this.currentChallengeSnapshot = null;
+    this.currentChallengeSignature = null;
+
+    if (shouldHideInstantly) {
+      this.challengeDim.setAlpha(0);
+      this.challengeDim.setVisible(false);
+      this.challengeBox.hide(true);
+      return;
+    }
+
+    this.tweens.killTweensOf(this.challengeDim);
+    this.tweens.add({
+      targets: this.challengeDim,
+      alpha: 0,
+      duration: 110,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.challengeDim.setVisible(false);
+      },
+    });
+    this.challengeBox.hide(false);
   }
 
   showNarration(payload) {
@@ -1416,6 +1559,21 @@ export class UIScene extends Phaser.Scene {
     playOptionalSound(this, 'sfx-task', { volume: 0.65 });
   }
 
+  handleChallengeComplete(payload) {
+    if (!payload?.feedbackTitle && !payload?.feedbackBody) {
+      return;
+    }
+
+    this.objectivePanel.pulseObjective?.();
+
+    this.enqueueNotification({
+      title: payload.feedbackTitle,
+      text: payload.feedbackBody,
+      tone: payload.feedbackTone || (payload.passed ? 'hope' : 'warning'),
+      duration: 1900,
+    });
+  }
+
   handleCanalReveal() {
     this.runScreenPulse({
       fillColor: 0x081015,
@@ -1475,10 +1633,13 @@ export class UIScene extends Phaser.Scene {
 
   resetUI() {
     this.currentDialogueSignature = null;
+    this.currentChallengeSignature = null;
+    this.currentChallengeSnapshot = null;
     this.activePrompt = null;
     this.lastObjectiveNotice = null;
     this.advanceInputCooldownUntil = 0;
     this.hideDialogue(true);
+    this.hideChallenge(true);
     this.hideInteractionPrompt(true);
     this.hideNarration(true);
     this.objectiveNoticeQueue = [];
@@ -1525,6 +1686,12 @@ export class UIScene extends Phaser.Scene {
     this.dialogueBox.resize(
       Math.min(920, width - (compact ? 18 : 36)),
       Math.min(compact ? 212 : 196, Math.max(veryCompact ? 186 : compact ? 178 : 170, height * 0.25)),
+    );
+    this.challengeDim.setSize(width, height);
+    this.challengeBox.setPosition(width / 2, height * 0.56);
+    this.challengeBox.resize(
+      Math.min(700, width - (compact ? 20 : 36)),
+      Math.min(compact ? height - 72 : 470, height - (compact ? 72 : 88)),
     );
 
     const objectiveWidth = compact ? Math.min(width - 16, 360) : Math.min(368, width - 32);

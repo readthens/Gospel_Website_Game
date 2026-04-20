@@ -1,17 +1,8 @@
 import Phaser from 'phaser';
 import { playOptionalMusic, playOptionalSound } from '../utils/audio';
+import { ENDING_VARIANTS, getEndingCopy } from '../data/endings.js';
 
-const DEFAULT_ENDING = Object.freeze({
-  headline: 'Hope Begins',
-  body: [
-    'May umusad na tubig, kahit kaunti.',
-    'Nandoon pa rin ang utang.',
-    'Nandoon pa rin ang hirap ng susunod na tanim.',
-    'Pero hindi na tahimik ang bigat na ito.',
-    'At hindi na ito pasan nang mag-isa.',
-  ],
-  reflection: 'Ang mabuting balita hindi laging biglaan.\nMinsan nagsisimula ito sa pakikinig,\nsa katotohanan,\nat sa pag-stay kapag mahirap nang umalis.',
-});
+const DEFAULT_ENDING = getEndingCopy(ENDING_VARIANTS.LEARNED);
 
 function isEmitter(value) {
   return Boolean(value)
@@ -63,17 +54,20 @@ function safeCall(target, methodNames) {
 function resetRunState(scene, gameState) {
   const dialogueSystem = scene.registry.get('dialogueSystem') || scene.game.dialogueSystem || null;
   const taskSystem = scene.registry.get('taskSystem') || scene.game.taskSystem || null;
+  const challengeSystem = scene.registry.get('challengeSystem') || scene.game.challengeSystem || null;
 
   safeCall(gameState, ['resetRun', 'resetForNewRun', 'resetSession', 'reset']);
   safeCall(dialogueSystem, ['reset', 'clear', 'stopAll']);
   safeCall(taskSystem, ['reset', 'clear']);
+  safeCall(challengeSystem, ['reset', 'clear']);
 
-  [gameState, dialogueSystem, taskSystem, scene.game.events].forEach((target) => {
+  [gameState, dialogueSystem, taskSystem, challengeSystem, scene.game.events].forEach((target) => {
     collectEmitters(target).forEach((emitter) => {
       emitter.emit('run:reset');
       emitter.emit('game:restart');
       emitter.emit('ui:reset');
       emitter.emit('dialogue:hide');
+      emitter.emit('challenge:hide');
       emitter.emit('interaction:clear');
       emitter.emit('narration:hide');
     });
@@ -137,15 +131,17 @@ function createButton(scene, label, options = {}) {
 
 function resolveEndingCopy(data = {}) {
   const ending = data.ending || data.outcome || null;
+  const endingVariant = data.endingVariant || ENDING_VARIANTS.LEARNED;
+  const variantCopy = ending || getEndingCopy(endingVariant);
 
   return {
-    headline: ending?.headline || data.headline || DEFAULT_ENDING.headline,
-    body: Array.isArray(ending?.body) && ending.body.length
-      ? ending.body
+    headline: variantCopy?.headline || data.headline || DEFAULT_ENDING.headline,
+    body: Array.isArray(variantCopy?.body) && variantCopy.body.length
+      ? variantCopy.body
       : Array.isArray(data.lines) && data.lines.length
         ? data.lines
         : DEFAULT_ENDING.body,
-    reflection: ending?.reflection || data.reflection || DEFAULT_ENDING.reflection,
+    reflection: variantCopy?.reflection || data.reflection || DEFAULT_ENDING.reflection,
   };
 }
 

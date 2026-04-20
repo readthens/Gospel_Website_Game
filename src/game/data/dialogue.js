@@ -27,13 +27,17 @@ export const DIALOGUE_KEYS = Object.freeze({
   REPAIR_GATE_COMPLETE: 'repairGateComplete',
   HUB_UNLOCK: 'hubUnlock',
   ENDING_NARRATION: 'endingNarration',
+  ENDING_NARRATION_DID_NOT_LEARN: 'endingNarrationDidNotLearn',
   ENDING_VILLAGER: 'endingVillager',
   ENDING_GOSPEL: 'endingGospel',
+  ENDING_GOSPEL_DID_NOT_LEARN: 'endingGospelDidNotLearn',
   FAMILY_BURDEN: 'familyBurden',
   TASK_LISTEN: 'taskListen',
   TASK_DOCUMENT: 'taskDocument',
   TASK_REPAIR: 'taskRepair',
   ENDING_SEQUENCE: 'endingSequence',
+  ENDING_SEQUENCE_LEARNED: 'endingSequenceLearned',
+  ENDING_SEQUENCE_DID_NOT_LEARN: 'endingSequenceDidNotLearn',
 })
 
 export const DIALOGUE = Object.freeze({
@@ -506,6 +510,37 @@ export const DIALOGUE = Object.freeze({
       },
     ],
   },
+  [DIALOGUE_KEYS.ENDING_NARRATION_DID_NOT_LEARN]: {
+    speaker: 'Narration',
+    lines: [
+      'May umusad na tubig.',
+      'Pero hindi lahat ng gumagalaw ay nauunawaan agad.',
+      'Nandoon pa rin ang ledger.',
+      'Nandoon pa rin ang kaba para sa susunod na tanim.',
+      'At may bigat na puwedeng marinig, pero hindi pa lubos na natatanggap.',
+    ],
+  },
+  [DIALOGUE_KEYS.ENDING_GOSPEL_DID_NOT_LEARN]: {
+    turns: [
+      {
+        speaker: 'Narration',
+        lines: [
+          'Hindi sapat ang pagdaan at pakikinig nang kalahati.',
+          'Ang mabuting balita humihingi ng mas totoo kaysa awa sa malayo.',
+          'Nakikinig ito nang buo.',
+          'Nagsasabi ito ng totoo.',
+          'At nananatili ito kapag may kailangang dalhin kasama.',
+        ],
+      },
+      {
+        speaker: 'Player',
+        lines: [
+          'Narinig ko, pero hindi ko pa lubos na nadala.',
+          'Kailangan ko pang matutong manatili.',
+        ],
+      },
+    ],
+  },
 })
 
 const LEGACY_DIALOGUE_KEYS = Object.freeze({
@@ -659,11 +694,23 @@ export const DIALOGUE_SEQUENCES = Object.freeze({
     startObjectiveId: 'hub',
     dialogueKeys: [DIALOGUE_KEYS.DOCUMENT_BOARD, DIALOGUE_KEYS.DOCUMENT_COMPLETE],
   }),
+  [DIALOGUE_KEYS.DOCUMENT_COMPLETE]: createSequence({
+    key: DIALOGUE_KEYS.DOCUMENT_COMPLETE,
+    beat: 'hub',
+    startObjectiveId: 'hub',
+    dialogueKeys: [DIALOGUE_KEYS.DOCUMENT_COMPLETE],
+  }),
   [DIALOGUE_KEYS.REPAIR_GATE_INTRO]: createSequence({
     key: DIALOGUE_KEYS.REPAIR_GATE_INTRO,
     beat: 'hub',
     startObjectiveId: 'hub',
     dialogueKeys: [DIALOGUE_KEYS.REPAIR_GATE_INTRO, DIALOGUE_KEYS.REPAIR_GATE_COMPLETE],
+  }),
+  [DIALOGUE_KEYS.REPAIR_GATE_COMPLETE]: createSequence({
+    key: DIALOGUE_KEYS.REPAIR_GATE_COMPLETE,
+    beat: 'hub',
+    startObjectiveId: 'hub',
+    dialogueKeys: [DIALOGUE_KEYS.REPAIR_GATE_COMPLETE],
   }),
   [DIALOGUE_KEYS.TASK_LISTEN]: createSequence({
     key: DIALOGUE_KEYS.TASK_LISTEN,
@@ -710,6 +757,24 @@ export const DIALOGUE_SEQUENCES = Object.freeze({
       DIALOGUE_KEYS.ENDING_NARRATION,
       DIALOGUE_KEYS.ENDING_VILLAGER,
       DIALOGUE_KEYS.ENDING_GOSPEL,
+    ],
+  }),
+  [DIALOGUE_KEYS.ENDING_SEQUENCE_LEARNED]: createSequence({
+    key: DIALOGUE_KEYS.ENDING_SEQUENCE_LEARNED,
+    beat: 'ending',
+    startObjectiveId: 'ending',
+    dialogueKeys: [
+      DIALOGUE_KEYS.ENDING_NARRATION,
+      DIALOGUE_KEYS.ENDING_GOSPEL,
+    ],
+  }),
+  [DIALOGUE_KEYS.ENDING_SEQUENCE_DID_NOT_LEARN]: createSequence({
+    key: DIALOGUE_KEYS.ENDING_SEQUENCE_DID_NOT_LEARN,
+    beat: 'ending',
+    startObjectiveId: 'ending',
+    dialogueKeys: [
+      DIALOGUE_KEYS.ENDING_NARRATION_DID_NOT_LEARN,
+      DIALOGUE_KEYS.ENDING_GOSPEL_DID_NOT_LEARN,
     ],
   }),
 })

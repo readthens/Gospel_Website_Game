@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { DIALOGUE_KEYS } from '../data/dialogue';
 import { getObjectiveText } from '../data/objectives';
+import { CHALLENGE_IDS } from '../data/challenges';
+import { ENDING_VARIANTS, getEndingCopy } from '../data/endings.js';
 import {
   ASSET_KEYS,
   OBJECTIVES,
@@ -8,6 +10,7 @@ import {
   WORLD_FLAGS,
   WORLD_LAYOUT,
 } from '../data/layout';
+import ChallengeSystem from '../systems/ChallengeSystem.js';
 import DialogueSystem from '../systems/DialogueSystem';
 import { gameState as sharedGameState } from '../systems/GameState';
 import TaskSystem from '../systems/TaskSystem';
@@ -78,6 +81,7 @@ export class GameScene extends Phaser.Scene {
       hubMarkers: [],
       endingFieldWaterAnnounced: false,
       progressWarningTimes: new Map(),
+      challengeListeners: [],
       fallbackState: {
         flags: new Map(),
         tasks: new Map(TASK_ID_LIST.map((taskId) => [taskId, false])),
@@ -137,6 +141,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.services.challengeSystem?.update?.(Date.now());
     this.player.update(time);
     if (this.player.consumeJumpCue?.()) {
       playOptionalSound(this, 'sfx-jump', { volume: 0.22 });
@@ -195,6 +200,17 @@ export class GameScene extends Phaser.Scene {
         sharedRoot?.taskSystem,
         sharedRoot?.TaskSystem,
       ]),
+      challengeSystem: pick([
+        data.challengeSystem,
+        data.services?.challengeSystem,
+        this.registry.get('challengeSystem'),
+        this.registry.get('ChallengeSystem'),
+        this.game?.challengeSystem,
+        gameServices.challengeSystem,
+        globalServices.challengeSystem,
+        sharedRoot?.challengeSystem,
+        sharedRoot?.ChallengeSystem,
+      ]),
     };
   }
 
@@ -220,6 +236,14 @@ export class GameScene extends Phaser.Scene {
       this.services.taskSystem.setGameState(this.services.gameState);
     }
 
+    if (!this.services.challengeSystem && this.services.gameState) {
+      this.services.challengeSystem = new ChallengeSystem({
+        gameState: this.services.gameState,
+      });
+    } else if (typeof this.services.challengeSystem?.setGameState === 'function') {
+      this.services.challengeSystem.setGameState(this.services.gameState);
+    }
+
     if (typeof this.services.dialogueSystem?.setHooks === 'function') {
       this.services.dialogueSystem.setHooks({
         onUnlockTasks: ({ taskIds }) => {
@@ -229,6 +253,14 @@ export class GameScene extends Phaser.Scene {
           this.completeTask(taskId, {
             sourceId: context?.sourceId || 'dialogue-system',
           });
+        },
+      });
+    }
+
+    if (typeof this.services.challengeSystem?.setHooks === 'function') {
+      this.services.challengeSystem.setHooks({
+        onChallengeComplete: (payload) => {
+          this.handleChallengeComplete(payload);
         },
       });
     }
@@ -246,6 +278,10 @@ export class GameScene extends Phaser.Scene {
       this.registry.set('taskSystem', this.services.taskSystem);
       this.game.taskSystem = this.services.taskSystem;
     }
+    if (this.services.challengeSystem) {
+      this.registry.set('challengeSystem', this.services.challengeSystem);
+      this.game.challengeSystem = this.services.challengeSystem;
+    }
 
     if (sharedRoot && typeof sharedRoot === 'object') {
       if (this.services.gameState) {
@@ -256,6 +292,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (this.services.taskSystem) {
         sharedRoot.taskSystem = this.services.taskSystem;
+      }
+      if (this.services.challengeSystem) {
+        sharedRoot.challengeSystem = this.services.challengeSystem;
       }
     }
   }
@@ -285,6 +324,18 @@ export class GameScene extends Phaser.Scene {
       gameState.state.progress = {
         currentBeat: 'intro',
       };
+    }
+    if (!gameState.state.progress.learning) {
+      gameState.state.progress.learning = {
+        results: {},
+        endingVariant: null,
+      };
+    }
+    if (!('challengeOpen' in gameState.state.ui)) {
+      gameState.state.ui.challengeOpen = false;
+    }
+    if (!('challenge' in gameState.state.ui)) {
+      gameState.state.ui.challenge = null;
     }
 
     if (typeof gameState.getCurrentBeat !== 'function') {
@@ -396,6 +447,35 @@ export class GameScene extends Phaser.Scene {
             this.setTaskState(taskId, { status: 'available' });
           }
         });
+      };
+    }
+
+    if (typeof gameState.getChallengeResult !== 'function') {
+      gameState.getChallengeResult = function getChallengeResult(challengeId) {
+        return this.state?.progress?.learning?.results?.[challengeId] || {
+          status: 'unseen',
+          score: 0,
+          maxScore: 0,
+          attempts: 0,
+        };
+      };
+    }
+
+    if (typeof gameState.setChallengeResult !== 'function') {
+      gameState.setChallengeResult = function setChallengeResult(challengeId, patch = {}) {
+        this.state.progress.learning.results[challengeId] = {
+          ...(this.state.progress.learning.results[challengeId] || {}),
+          ...patch,
+        };
+        this.emit?.('change');
+        return this.state.progress.learning.results[challengeId];
+      };
+    }
+
+    if (typeof gameState.setEndingVariant !== 'function') {
+      gameState.setEndingVariant = function setEndingVariant(endingVariant = null) {
+        this.state.progress.learning.endingVariant = endingVariant;
+        this.emit?.('change');
       };
     }
   }
@@ -1031,6 +1111,23 @@ export class GameScene extends Phaser.Scene {
       this.game.events.on(binding.eventName, binding.handler);
       this.externalListeners.push(binding);
     });
+
+    const challengeEvents = [
+      'ui:challenge:show',
+      'ui:challenge:update',
+      'ui:challenge:hide',
+      'gameplay:challenge-complete',
+    ];
+
+    if (typeof this.services.challengeSystem?.subscribe === 'function') {
+      challengeEvents.forEach((eventName) => {
+        const unsubscribe = this.services.challengeSystem.subscribe(eventName, (payload) => {
+          this.emitGameEvent(eventName, payload);
+        });
+
+        this.runtime.challengeListeners.push(unsubscribe);
+      });
+    }
   }
 
   handleShutdown() {
@@ -1038,6 +1135,13 @@ export class GameScene extends Phaser.Scene {
       this.game.events.off(eventName, handler);
     });
     this.externalListeners = [];
+
+    this.runtime.challengeListeners.forEach((unsubscribe) => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    });
+    this.runtime.challengeListeners = [];
   }
 
   createRenderable(definition) {
@@ -1184,18 +1288,12 @@ export class GameScene extends Phaser.Scene {
               this.emitBeat('tutorial_sign_read', { x: interactable.x });
             }
 
-            if (!this.getFlag(WORLD_FLAGS.INTRO_SEEN)) {
-              const introTrigger = this.triggerById.get('introNarration');
-              if (introTrigger) {
-                introTrigger.consumed = true;
-              }
-
-              this.startIntroNarration('tutorialSign');
-              return;
-            }
-
             if (!this.getFlag(WORLD_FLAGS.FARMER_TALKED)) {
-              this.setObjective('farmer');
+              if (this.getFlag(WORLD_FLAGS.INTRO_SEEN)) {
+                this.setObjective('farmer');
+              } else {
+                this.setObjective('intro', { force: true });
+              }
             }
           },
         });
@@ -1278,6 +1376,36 @@ export class GameScene extends Phaser.Scene {
         });
       default:
         if (interactable.taskId) {
+          if (interactable.id === 'documentBoard') {
+            return this.requestDialogue({
+              key: DIALOGUE_KEYS.DOCUMENT_BOARD,
+              sourceId: interactable.id,
+              beat: interactable.beat,
+              onComplete: () => {
+                this.startChallenge(CHALLENGE_IDS.DOCUMENT_TRUTH, {
+                  sourceId: interactable.id,
+                  x: interactable.x,
+                  taskId: interactable.taskId,
+                });
+              },
+            });
+          }
+
+          if (interactable.id === 'repairGate') {
+            return this.requestDialogue({
+              key: DIALOGUE_KEYS.REPAIR_GATE_INTRO,
+              sourceId: interactable.id,
+              beat: interactable.beat,
+              onComplete: () => {
+                this.startChallenge(CHALLENGE_IDS.REPAIR_GATE, {
+                  sourceId: interactable.id,
+                  x: interactable.x,
+                  taskId: interactable.taskId,
+                });
+              },
+            });
+          }
+
           return this.requestDialogue({
             key: interactable.dialogueKey || interactable.taskId,
             sourceId: interactable.id,
@@ -1441,17 +1569,31 @@ export class GameScene extends Phaser.Scene {
       };
     }
 
-    const text = objectiveKey === 'hub'
-      ? this.services.taskSystem?.getHubObjective?.() || getObjectiveText('hub', {
-        remainingTaskIds: this.services.taskSystem?.getRemainingTaskIds?.() || [],
-      })
-      : OBJECTIVES[objectiveKey].text;
+    const text = this.resolveObjectiveText(objectiveKey);
 
     return {
       id: OBJECTIVES[objectiveKey].id,
       key: objectiveKey,
       text,
     };
+  }
+
+  resolveObjectiveText(objectiveKey) {
+    if (objectiveKey === 'hub') {
+      return this.services.taskSystem?.getHubObjective?.() || getObjectiveText('hub', {
+        remainingTaskIds: this.services.taskSystem?.getRemainingTaskIds?.() || [],
+      });
+    }
+
+    if (
+      objectiveKey === 'ending'
+      && this.getFlag(WORLD_FLAGS.ENDING_UNLOCKED)
+      && !this.getFlag(WORLD_FLAGS.FINAL_NARRATION_SEEN)
+    ) {
+      return 'Talk to Tatay Ramon in the field.';
+    }
+
+    return OBJECTIVES[objectiveKey]?.text || objectiveKey;
   }
 
   emitProgressReminder({
@@ -1528,13 +1670,80 @@ export class GameScene extends Phaser.Scene {
       sourceId: `${interactable.id}-complete`,
       beat: 'hub',
       onComplete: () => {
-        this.completeTask(TASK_IDS.LISTEN, {
+        this.startChallenge(CHALLENGE_IDS.LISTEN_REFLECTION, {
           sourceId: interactable.id,
           listenedTo: progress.listenedTo,
           x: interactable.x,
         });
       },
     });
+  }
+
+  startChallenge(challengeId, context = {}) {
+    if (!this.services.challengeSystem?.start) {
+      return false;
+    }
+
+    this.acquireInteractionLock();
+    this.services.challengeSystem.start(challengeId, {
+      context,
+      now: Date.now(),
+    });
+    return true;
+  }
+
+  handleChallengeComplete(payload = {}) {
+    this.releaseInteractionLock();
+
+    switch (payload.challengeId) {
+      case CHALLENGE_IDS.LISTEN_REFLECTION:
+        this.completeTask(TASK_IDS.LISTEN, {
+          sourceId: payload.context?.sourceId || 'listenReflection',
+          listenedTo: payload.context?.listenedTo || [],
+          x: payload.context?.x,
+          challengeResult: payload,
+        });
+        break;
+      case CHALLENGE_IDS.DOCUMENT_TRUTH:
+        this.requestDialogue({
+          key: DIALOGUE_KEYS.DOCUMENT_COMPLETE,
+          sourceId: `${payload.context?.sourceId || 'documentBoard'}-complete`,
+          beat: 'hub',
+          onComplete: () => {
+            this.completeTask(TASK_IDS.DOCUMENT, {
+              sourceId: payload.context?.sourceId || 'documentTruth',
+              x: payload.context?.x,
+              challengeResult: payload,
+            });
+          },
+        });
+        break;
+      case CHALLENGE_IDS.REPAIR_GATE:
+        if (!payload.passed) {
+          this.setObjective('hub');
+          this.syncWorldState();
+          return;
+        }
+
+        this.requestDialogue({
+          key: DIALOGUE_KEYS.REPAIR_GATE_COMPLETE,
+          sourceId: `${payload.context?.sourceId || 'repairGate'}-complete`,
+          beat: 'hub',
+          onComplete: () => {
+            this.completeTask(TASK_IDS.REPAIR, {
+              sourceId: payload.context?.sourceId || 'repairGate',
+              x: payload.context?.x,
+              challengeResult: payload,
+            });
+          },
+        });
+        break;
+      case CHALLENGE_IDS.FINAL_ASSESSMENT:
+        this.finishEndingFromAssessment(payload);
+        break;
+      default:
+        break;
+    }
   }
 
   showDialogueSnapshot(snapshot) {
@@ -1961,24 +2170,65 @@ export class GameScene extends Phaser.Scene {
     this.setObjective('ending');
 
     return this.requestDialogue({
-      key: DIALOGUE_KEYS.ENDING_SEQUENCE,
+      key: DIALOGUE_KEYS.ENDING_VILLAGER,
       sourceId,
       beat: 'ending',
       onComplete: () => {
-        this.setFlag(WORLD_FLAGS.FINAL_NARRATION_SEEN, true);
-        this.startEndScene();
+        this.startChallenge(CHALLENGE_IDS.FINAL_ASSESSMENT, {
+          sourceId,
+          x: this.interactablesById.get('endingVillager')?.x,
+        });
       },
     });
   }
 
-  startEndScene() {
+  resolveEndingVariant(finalAssessmentPayload = null) {
+    const state = this.services.gameState;
+    const listenResult = state?.getChallengeResult?.(CHALLENGE_IDS.LISTEN_REFLECTION) || null;
+    const documentResult = state?.getChallengeResult?.(CHALLENGE_IDS.DOCUMENT_TRUTH) || null;
+    const finalResult = finalAssessmentPayload
+      || state?.getChallengeResult?.(CHALLENGE_IDS.FINAL_ASSESSMENT)
+      || null;
+
+    const learned = listenResult?.status === 'passed'
+      && documentResult?.status === 'passed'
+      && (finalResult?.score || 0) >= 3;
+
+    return learned ? ENDING_VARIANTS.LEARNED : ENDING_VARIANTS.DID_NOT_LEARN;
+  }
+
+  finishEndingFromAssessment(payload) {
+    const endingVariant = this.resolveEndingVariant(payload);
+    const sequenceKey = endingVariant === ENDING_VARIANTS.LEARNED
+      ? DIALOGUE_KEYS.ENDING_SEQUENCE_LEARNED
+      : DIALOGUE_KEYS.ENDING_SEQUENCE_DID_NOT_LEARN;
+
+    if (typeof this.services.gameState?.setEndingVariant === 'function') {
+      this.services.gameState.setEndingVariant(endingVariant);
+    }
+
+    this.requestDialogue({
+      key: sequenceKey,
+      sourceId: payload.context?.sourceId || 'endingAssessment',
+      beat: 'ending',
+      onComplete: () => {
+        this.setFlag(WORLD_FLAGS.FINAL_NARRATION_SEEN, true);
+        this.startEndScene(endingVariant);
+      },
+    });
+  }
+
+  startEndScene(endingVariant = null) {
+    const resolvedVariant = endingVariant || this.resolveEndingVariant();
     const payload = {
       sceneKey: this.scene.key,
       gameState: this.services.gameState,
       completedTasks: TASK_ID_LIST.filter((taskId) => this.isTaskComplete(taskId)),
       waterFlowing: this.getFlag(WORLD_FLAGS.WATER_FLOWING),
       endingUnlocked: this.getFlag(WORLD_FLAGS.ENDING_UNLOCKED),
-      text: OBJECTIVES.ending.text,
+      endingVariant: resolvedVariant,
+      ending: getEndingCopy(resolvedVariant),
+      text: this.resolveObjectiveText('ending'),
     };
 
     this.emitGameEvent('gameplay:end', payload);
@@ -2147,8 +2397,15 @@ export class GameScene extends Phaser.Scene {
     const uiScene = this.scene.isActive('UIScene') ? this.scene.get('UIScene') : null;
     const gameStateUi = this.services.gameState?.state?.ui || {};
     const dialogueSnapshot = this.services.dialogueSystem?.getSnapshot?.() || null;
+    const challengeSnapshot = this.services.challengeSystem?.getSnapshot?.() || null;
     const dialogueActive = Boolean(this.services.dialogueSystem?.isActive?.() || gameStateUi.dialogueOpen || gameStateUi.dialogue);
     const dialogueVisible = Boolean(uiScene?.dialogueBox?.visible);
+    const challengeActive = Boolean(
+      this.services.challengeSystem?.isActive?.()
+      || gameStateUi.challengeOpen
+      || gameStateUi.challenge
+    );
+    const challengeVisible = Boolean(uiScene?.challengeBox?.visible);
     const movementStuck = Boolean(
       this.player?.movementLocked
       || this.runtime.fallbackState.uiLocked
@@ -2157,14 +2414,14 @@ export class GameScene extends Phaser.Scene {
     );
 
     if (this.runtime.lockDepth <= 0) {
-      if (!dialogueActive && movementStuck) {
+      if (!dialogueActive && !challengeActive && movementStuck) {
         this.hideDialogueUi();
         this.clearAllLocks();
       }
       return;
     }
 
-    if (dialogueActive && dialogueVisible) {
+    if ((dialogueActive && dialogueVisible) || (challengeActive && challengeVisible)) {
       return;
     }
 
@@ -2174,6 +2431,11 @@ export class GameScene extends Phaser.Scene {
 
     if (dialogueActive && dialogueSnapshot?.text) {
       this.showDialogueSnapshot(dialogueSnapshot);
+      this.runtime.lockStartedAt = time;
+      return;
+    }
+
+    if (challengeActive && challengeSnapshot?.active) {
       this.runtime.lockStartedAt = time;
       return;
     }
@@ -2429,12 +2691,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const force = options.force === true;
-
-    const objectiveText = objectiveKey === 'hub'
-      ? this.services.taskSystem?.getHubObjective?.() || getObjectiveText('hub', {
-        remainingTaskIds: this.services.taskSystem?.getRemainingTaskIds?.() || [],
-      })
-      : OBJECTIVES[objectiveKey].text;
+    const objectiveText = options.text || this.resolveObjectiveText(objectiveKey);
 
     if (
       !force
@@ -2536,12 +2793,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   syncFallbackUi() {
-    if (!this.fallbackUi) {
+    if (!this.fallbackUi || !this.sys?.isActive()) {
       return;
     }
 
     const showFallback = this.shouldUseFallbackUi();
     Object.values(this.fallbackUi).forEach((entry) => {
+      if (!entry?.scene || entry.active === false) {
+        return;
+      }
       entry.setVisible(showFallback);
     });
 
@@ -2550,14 +2810,31 @@ export class GameScene extends Phaser.Scene {
     }
 
     const prompt = this.runtime.fallbackState.prompt;
+    const objectiveText = this.fallbackUi.objectiveText;
+    const taskText = this.fallbackUi.taskText;
+    const promptText = this.fallbackUi.promptText;
+    const promptBackground = this.fallbackUi.promptBackground;
 
-    this.fallbackUi.objectiveText.setText(this.runtime.currentObjectiveText || '');
-    this.fallbackUi.taskText.setText(
+    if (
+      !objectiveText?.scene
+      || !taskText?.scene
+      || !promptText?.scene
+      || !promptBackground?.scene
+      || objectiveText.active === false
+      || taskText.active === false
+      || promptText.active === false
+      || promptBackground.active === false
+    ) {
+      return;
+    }
+
+    objectiveText.setText(this.runtime.currentObjectiveText || '');
+    taskText.setText(
       `Actions: ${TASK_ID_LIST.map((taskId) => `${this.isTaskComplete(taskId) ? '[x]' : '[ ]'} ${taskId}`).join('   ')}`
     );
-    this.fallbackUi.promptText.setText(prompt ? `[${prompt.key || 'E'}] ${prompt.text}` : '');
-    this.fallbackUi.promptBackground.setVisible(showFallback && Boolean(prompt));
-    this.fallbackUi.promptText.setVisible(showFallback && Boolean(prompt));
+    promptText.setText(prompt ? `[${prompt.key || 'E'}] ${prompt.text}` : '');
+    promptBackground.setVisible(showFallback && Boolean(prompt));
+    promptText.setVisible(showFallback && Boolean(prompt));
   }
 }
 

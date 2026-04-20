@@ -53,17 +53,20 @@ function resetRunState(scene, gameState) {
 
   const dialogueSystem = scene.registry.get('dialogueSystem') || scene.game.dialogueSystem || null;
   const taskSystem = scene.registry.get('taskSystem') || scene.game.taskSystem || null;
+  const challengeSystem = scene.registry.get('challengeSystem') || scene.game.challengeSystem || null;
 
   safeCall(dialogueSystem, ['reset', 'clear', 'stopAll']);
   safeCall(taskSystem, ['reset', 'clear']);
+  safeCall(challengeSystem, ['reset', 'clear']);
 
-  const eventTargets = [gameState, dialogueSystem, taskSystem, scene.game.events];
+  const eventTargets = [gameState, dialogueSystem, taskSystem, challengeSystem, scene.game.events];
 
   eventTargets.forEach((target) => {
     collectEmitters(target).forEach((emitter) => {
       emitter.emit('run:reset');
       emitter.emit('ui:reset');
       emitter.emit('dialogue:hide');
+      emitter.emit('challenge:hide');
       emitter.emit('interaction:clear');
       emitter.emit('narration:hide');
     });

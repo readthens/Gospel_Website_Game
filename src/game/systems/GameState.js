@@ -1,6 +1,8 @@
 import { OBJECTIVE_IDS, getObjectiveText } from '../data/objectives.js'
+import { CHALLENGE_IDS } from '../data/challenges.js'
 
 const TASK_IDS = Object.freeze(['listen', 'document', 'repair'])
+const LEARNING_CHALLENGES = Object.freeze(Object.values(CHALLENGE_IDS))
 
 const createInitialTaskStatus = () =>
   TASK_IDS.reduce((statusMap, taskId) => {
@@ -8,10 +10,23 @@ const createInitialTaskStatus = () =>
     return statusMap
   }, {})
 
+const createInitialLearningResults = () =>
+  LEARNING_CHALLENGES.reduce((resultMap, challengeId) => {
+    resultMap[challengeId] = {
+      status: 'unseen',
+      score: 0,
+      maxScore: 0,
+      attempts: 0,
+    }
+    return resultMap
+  }, {})
+
 export const createInitialGameState = () => ({
   flags: {
     introSeen: false,
+    tutorialSignRead: false,
     farmerTalked: false,
+    cropsSeen: false,
     irrigationSeen: false,
     familySeen: false,
     reflectionSeen: false,
@@ -29,15 +44,21 @@ export const createInitialGameState = () => ({
     currentBeat: OBJECTIVE_IDS.INTRO,
     taskStatus: createInitialTaskStatus(),
     listenTalkedTo: [],
+    learning: {
+      results: createInitialLearningResults(),
+      endingVariant: null,
+    },
   },
   ui: {
     dialogueOpen: false,
+    challengeOpen: false,
     canMove: true,
     currentObjective: getObjectiveText(OBJECTIVE_IDS.INTRO),
     currentObjectiveId: OBJECTIVE_IDS.INTRO,
     interactTargetId: null,
     interactionPrompt: '',
     dialogue: null,
+    challenge: null,
     narration: null,
   },
 })
@@ -322,6 +343,95 @@ class SharedGameState extends EventTarget {
 
     this.state.ui.narration = null
     this.emit('narration-change', { narration: null, state: this.getSnapshot() })
+    this.emit('change')
+  }
+
+  getLearningSnapshot() {
+    return cloneState(this.state.progress?.learning || {
+      results: createInitialLearningResults(),
+      endingVariant: null,
+    })
+  }
+
+  getChallengeResult(challengeId) {
+    const results = this.state.progress?.learning?.results || {}
+    return results[challengeId] || {
+      status: 'unseen',
+      score: 0,
+      maxScore: 0,
+      attempts: 0,
+    }
+  }
+
+  setChallengeResult(challengeId, patch = {}) {
+    if (!this.state.progress.learning) {
+      this.state.progress.learning = {
+        results: createInitialLearningResults(),
+        endingVariant: null,
+      }
+    }
+
+    if (!this.state.progress.learning.results) {
+      this.state.progress.learning.results = createInitialLearningResults()
+    }
+
+    const current = this.getChallengeResult(challengeId)
+    this.state.progress.learning.results[challengeId] = {
+      ...current,
+      ...patch,
+    }
+
+    this.emit('challenge-result-change', {
+      challengeId,
+      result: cloneState(this.state.progress.learning.results[challengeId]),
+      state: this.getSnapshot(),
+    })
+    this.emit('change')
+
+    return this.state.progress.learning.results[challengeId]
+  }
+
+  getEndingVariant() {
+    return this.state.progress?.learning?.endingVariant || null
+  }
+
+  setEndingVariant(endingVariant = null) {
+    if (!this.state.progress.learning) {
+      this.state.progress.learning = {
+        results: createInitialLearningResults(),
+        endingVariant: null,
+      }
+    }
+
+    if (this.state.progress.learning.endingVariant === endingVariant) {
+      return
+    }
+
+    this.state.progress.learning.endingVariant = endingVariant
+    this.emit('ending-variant-change', {
+      endingVariant,
+      state: this.getSnapshot(),
+    })
+    this.emit('change')
+  }
+
+  openChallenge(challenge) {
+    this.state.ui.challengeOpen = true
+    this.state.ui.canMove = false
+    this.state.ui.challenge = challenge
+    this.emit('challenge-open', { challenge, state: this.getSnapshot() })
+    this.emit('change')
+  }
+
+  closeChallenge() {
+    if (!this.state.ui.challengeOpen && !this.state.ui.challenge) {
+      return
+    }
+
+    this.state.ui.challengeOpen = false
+    this.state.ui.challenge = null
+    this.state.ui.canMove = true
+    this.emit('challenge-close', this.getSnapshot())
     this.emit('change')
   }
 

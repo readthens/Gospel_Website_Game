@@ -583,7 +583,7 @@ export const WORLD_LAYOUT = Object.freeze({
     }),
   ]),
   triggers: Object.freeze([
-    trigger('introNarration', 380, 360, 180, 720, {
+    trigger('introNarration', 540, 360, 180, 720, {
       beat: 'intro',
       requiredFlags: [WORLD_FLAGS.TUTORIAL_SIGN_READ],
       eventKey: 'intro_narration',
