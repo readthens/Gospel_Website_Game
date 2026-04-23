@@ -1,8 +1,22 @@
+import {
+  FARMER_ANIMATION_KEYS,
+  PLAYER_ANIMATION_KEYS,
+  PUMP_DRIP_ANIMATION_KEY,
+  WATER_ANIMATION_KEY,
+} from '../utils/constants.js'
+
 const WATER_FRAME_KEYS = Object.freeze([
   'canal-water-0',
   'canal-water-1',
   'canal-water-2',
   'canal-water-3',
+])
+
+const PUMP_DRIP_FRAME_KEYS = Object.freeze([
+  'pump-drip-0',
+  'pump-drip-1',
+  'pump-drip-2',
+  'pump-drip-3',
 ])
 
 export const TEXTURE_KEYS = Object.freeze({
@@ -16,8 +30,14 @@ export const TEXTURE_KEYS = Object.freeze({
   terrain: Object.freeze({
     ground: 'ground',
     groundGreen: 'ground-green',
+    platformTerraceMain: 'tile-platform-terrace-main',
+    platformTerraceSmall: 'tile-platform-terrace-small',
+    platformTerraceDry: 'tile-platform-terrace-dry',
+    platformBamboo: 'tile-platform-bamboo',
+    platformCanal: 'tile-platform-canal',
     canalDry: 'canal-dry',
     canalWaterFrames: WATER_FRAME_KEYS,
+    pumpDripFrames: PUMP_DRIP_FRAME_KEYS,
   }),
   props: Object.freeze({
     house: 'house',
@@ -50,7 +70,8 @@ export const TEXTURE_KEYS = Object.freeze({
 })
 
 export const ANIMATION_KEYS = Object.freeze({
-  waterFlow: 'water-flow',
+  waterFlow: WATER_ANIMATION_KEY,
+  pumpDrip: PUMP_DRIP_ANIMATION_KEY,
 })
 
 function createTexture(scene, key, width, height, draw) {
@@ -95,6 +116,147 @@ function drawCharacter(graphics, width, height, palette) {
   graphics.fillStyle(0x1f120d)
   graphics.fillCircle(width * 0.43, 12, 1.5)
   graphics.fillCircle(width * 0.57, 12, 1.5)
+}
+
+function drawMotherCharacter(graphics, width, height) {
+  const shadow = 0x2c1912
+  const skin = 0xcfab85
+  const skinShadow = 0xad8667
+  const hair = 0x241510
+  const hairHighlight = 0x5a4031
+  const blouse = 0x995846
+  const blouseHighlight = 0xc18269
+  const skirt = 0x54453d
+  const skirtShadow = 0x3a2f29
+  const apron = 0xc5af87
+  const sandal = 0x4d3628
+  const eye = 0x1a100c
+
+  graphics.clear()
+  graphics.fillStyle(shadow, 0.34)
+  graphics.fillEllipse(width * 0.5, height - 4, width * 0.62, 9)
+
+  graphics.fillStyle(sandal)
+  graphics.fillRect(14, height - 8, 5, 3)
+  graphics.fillRect(22, height - 8, 5, 3)
+
+  graphics.fillStyle(skirtShadow)
+  graphics.fillTriangle(10, 31, 30, 31, 31, height - 9)
+
+  graphics.fillStyle(skirt)
+  graphics.fillRoundedRect(12, 29, 16, 10, 4)
+  graphics.fillTriangle(11, 36, 29, 36, 30, height - 10)
+
+  graphics.fillStyle(apron)
+  graphics.fillRect(17, 29, 5, 12)
+  graphics.fillRect(15, 40, 9, 2)
+
+  graphics.fillStyle(blouse)
+  graphics.fillRoundedRect(10, 19, 19, 14, 5)
+
+  graphics.fillStyle(blouseHighlight)
+  graphics.fillRect(13, 22, 11, 3)
+  graphics.fillRect(15, 26, 8, 2)
+
+  graphics.fillStyle(blouse)
+  graphics.fillRect(8, 22, 4, 11)
+  graphics.fillRect(28, 23, 4, 8)
+  graphics.fillRect(25, 29, 7, 4)
+
+  graphics.fillStyle(skinShadow)
+  graphics.fillRect(8, 33, 4, 4)
+  graphics.fillRect(24, 29, 4, 5)
+  graphics.fillRect(17, 17, 4, 4)
+
+  graphics.fillStyle(skin)
+  graphics.fillCircle(19, 11, 7)
+  graphics.fillRect(17, 17, 4, 3)
+
+  graphics.fillStyle(hair)
+  graphics.fillEllipse(19, 9, 18, 11)
+  graphics.fillRect(11, 6, 15, 6)
+  graphics.fillRect(10, 10, 4, 9)
+  graphics.fillCircle(27, 13, 4)
+
+  graphics.fillStyle(hairHighlight)
+  graphics.fillRect(13, 7, 7, 1)
+  graphics.fillRect(24, 11, 2, 2)
+
+  graphics.fillStyle(eye)
+  graphics.fillCircle(17, 11, 1.3)
+  graphics.fillCircle(21, 11, 1.3)
+  graphics.fillRect(17, 15, 4, 1)
+}
+
+function drawChildCharacter(graphics, width, height) {
+  const shadow = 0x2c1912
+  const skin = 0xe0ba92
+  const skinShadow = 0xb68d6f
+  const hair = 0x2a1711
+  const hairHighlight = 0x5e4538
+  const top = 0xb8c5ab
+  const topShadow = 0x8e9b81
+  const collar = 0xeaddc3
+  const skirt = 0x617490
+  const skirtShadow = 0x445163
+  const shoe = 0x473227
+  const eye = 0x1a100c
+
+  graphics.clear()
+  graphics.fillStyle(shadow, 0.32)
+  graphics.fillEllipse(width * 0.5, height - 4, width * 0.52, 8)
+
+  graphics.fillStyle(shoe)
+  graphics.fillRect(12, height - 7, 4, 2)
+  graphics.fillRect(18, height - 7, 4, 2)
+
+  graphics.fillStyle(skirtShadow)
+  graphics.fillTriangle(9, 28, 23, 28, 24, 38)
+
+  graphics.fillStyle(skirt)
+  graphics.fillRoundedRect(10, 27, 12, 8, 4)
+  graphics.fillTriangle(10, 32, 22, 32, 23, 38)
+
+  graphics.fillStyle(topShadow)
+  graphics.fillRoundedRect(9, 19, 14, 11, 4)
+
+  graphics.fillStyle(top)
+  graphics.fillRoundedRect(8, 18, 15, 10, 4)
+
+  graphics.fillStyle(collar)
+  graphics.fillRect(11, 21, 9, 3)
+  graphics.fillRect(15, 24, 2, 5)
+
+  graphics.fillStyle(topShadow)
+  graphics.fillRect(6, 22, 3, 9)
+  graphics.fillRect(23, 22, 3, 9)
+
+  graphics.fillStyle(skinShadow)
+  graphics.fillRect(6, 30, 3, 3)
+  graphics.fillRect(23, 30, 3, 3)
+  graphics.fillRect(13, 38, 3, 6)
+  graphics.fillRect(18, 38, 3, 6)
+  graphics.fillRect(14, 17, 4, 3)
+
+  graphics.fillStyle(skin)
+  graphics.fillCircle(16, 11, 7)
+  graphics.fillRect(14, 17, 4, 2)
+
+  graphics.fillStyle(hair)
+  graphics.fillEllipse(16, 9, 18, 11)
+  graphics.fillRect(9, 6, 14, 5)
+  graphics.fillRect(8, 10, 4, 8)
+  graphics.fillRect(21, 10, 4, 8)
+  graphics.fillCircle(23, 14, 3)
+
+  graphics.fillStyle(hairHighlight)
+  graphics.fillRect(11, 7, 6, 1)
+  graphics.fillRect(20, 11, 2, 1)
+
+  graphics.fillStyle(eye)
+  graphics.fillCircle(14, 11, 1.2)
+  graphics.fillCircle(18, 11, 1.2)
+  graphics.fillRect(14, 15, 4, 1)
 }
 
 function drawGround(graphics, width, height) {
@@ -148,14 +310,259 @@ function drawGroundGreen(graphics, width, height) {
   graphics.strokePath()
 }
 
-function drawPlatform(graphics, width, height) {
+function drawTerracePlatform(graphics, width, height, palette = {}) {
+  const grassHighlight = palette.grassHighlight ?? 0x97a266
+  const grass = palette.grass ?? 0x768450
+  const grassShadow = palette.grassShadow ?? 0x55653a
+  const dryGrass = palette.dryGrass ?? 0xb0a06c
+  const lip = palette.lip ?? 0x5f4025
+  const soilHighlight = palette.soilHighlight ?? 0xa57042
+  const soilMid = palette.soilMid ?? 0x7d4d2d
+  const soilLow = palette.soilLow ?? 0x6a3f23
+  const soilShadow = palette.soilShadow ?? 0x432716
+  const root = palette.root ?? 0x603a1f
+  const pebble = palette.pebble ?? 0xbb8c56
+
   graphics.clear()
-  graphics.fillStyle(0x8f6b42)
-  graphics.fillRoundedRect(0, 2, width, height - 4, 6)
-  graphics.fillStyle(0xb28959)
-  graphics.fillRect(4, 4, width - 8, 6)
-  graphics.lineStyle(2, 0x6f4f2e, 0.85)
-  graphics.lineBetween(8, height - 6, width - 8, height - 6)
+
+  graphics.fillStyle(soilShadow)
+  graphics.fillRect(0, 0, width, height)
+
+  graphics.fillStyle(grassShadow)
+  graphics.fillRect(0, 0, width, 6)
+
+  graphics.fillStyle(grass)
+  graphics.fillRect(0, 0, width, 4)
+
+  graphics.fillStyle(grassHighlight)
+  graphics.fillRect(0, 0, width, 1)
+
+  graphics.fillStyle(dryGrass)
+  ;[4, 18, 31, 46, 58].forEach((x, index) => {
+    const tuftWidth = index % 2 === 0 ? 6 : 5
+    graphics.fillRect(x, 2, Math.min(tuftWidth, width - x), 2)
+  })
+
+  graphics.fillStyle(grass)
+  ;[6, 14, 22, 34, 42, 50, 60].forEach((x, index) => {
+    const fringeHeight = index % 3 === 0 ? 3 : 2
+    graphics.fillRect(x, 4, Math.min(2, width - x), fringeHeight)
+  })
+
+  graphics.fillStyle(lip)
+  graphics.fillRect(0, 5, width, 2)
+
+  graphics.fillStyle(soilHighlight)
+  graphics.fillRect(0, 7, width, 3)
+
+  graphics.fillStyle(soilMid)
+  graphics.fillRect(0, 10, width, 4)
+
+  graphics.fillStyle(soilLow)
+  graphics.fillRect(0, 14, width, Math.max(height - 18, 1))
+
+  graphics.fillStyle(pebble)
+  ;[
+    [10, 12, 4, 1],
+    [26, 15, 5, 1],
+    [41, 11, 4, 1],
+    [54, 14, 6, 1],
+  ].forEach(([x, y, rectWidth, rectHeight]) => {
+    graphics.fillRect(x, y, rectWidth, rectHeight)
+  })
+
+  graphics.lineStyle(1, root, 1)
+  graphics.beginPath()
+  graphics.moveTo(8, 16)
+  graphics.lineTo(14, 18)
+  graphics.lineTo(11, 21)
+  graphics.moveTo(28, 13)
+  graphics.lineTo(33, 15)
+  graphics.lineTo(31, 18)
+  graphics.moveTo(47, 16)
+  graphics.lineTo(53, 18)
+  graphics.lineTo(50, 21)
+  graphics.strokePath()
+
+  graphics.fillStyle(soilShadow)
+  graphics.fillRect(0, height - 4, width, 4)
+}
+
+function drawTerracePlatformSmall(graphics, width, height) {
+  const grassHighlight = 0x95a166
+  const grass = 0x6e7d4b
+  const grassShadow = 0x4d5e37
+  const dryGrass = 0xa99b68
+  const lip = 0x564026
+  const soilHighlight = 0x91623a
+  const soilMid = 0x714525
+  const soilShadow = 0x3f2414
+  const stone = 0x8a643d
+  const root = 0x5a341b
+
+  graphics.clear()
+
+  graphics.fillStyle(soilShadow)
+  graphics.fillRect(0, 0, width, height)
+
+  graphics.fillStyle(grassShadow)
+  graphics.fillRect(0, 0, width, 5)
+
+  graphics.fillStyle(grass)
+  graphics.fillRect(0, 0, width, 3)
+
+  graphics.fillStyle(grassHighlight)
+  graphics.fillRect(0, 0, width, 1)
+
+  graphics.fillStyle(dryGrass)
+  ;[6, 20, 36, 52].forEach((x) => {
+    graphics.fillRect(x, 2, Math.min(5, width - x), 1)
+  })
+
+  graphics.fillStyle(grass)
+  ;[8, 18, 28, 40, 50, 60].forEach((x, index) => {
+    graphics.fillRect(x, 3, Math.min(2, width - x), index % 2 === 0 ? 2 : 1)
+  })
+
+  graphics.fillStyle(lip)
+  graphics.fillRect(0, 4, width, 2)
+
+  graphics.fillStyle(soilHighlight)
+  graphics.fillRect(0, 6, width, 3)
+
+  graphics.fillStyle(soilMid)
+  graphics.fillRect(0, 9, width, Math.max(height - 12, 1))
+
+  graphics.fillStyle(stone)
+  ;[
+    [12, 12, 5, 2],
+    [31, 14, 6, 1],
+    [48, 11, 4, 2],
+  ].forEach(([x, y, rectWidth, rectHeight]) => {
+    graphics.fillRect(x, y, rectWidth, rectHeight)
+  })
+
+  graphics.lineStyle(1, root, 1)
+  graphics.beginPath()
+  graphics.moveTo(16, 15)
+  graphics.lineTo(22, 17)
+  graphics.moveTo(42, 13)
+  graphics.lineTo(48, 16)
+  graphics.strokePath()
+
+  graphics.fillStyle(soilShadow)
+  graphics.fillRect(0, height - 3, width, 3)
+}
+
+function drawBambooPlatform(graphics, width, height) {
+  const poleOutline = 0x6a4a2c
+  const poleFill = 0xbf9860
+  const poleHighlight = 0xe0c68c
+  const poleShadow = 0x8d6a42
+  const rope = 0x73583a
+  const ropeShadow = 0x4c3925
+  const support = 0x5c4329
+  const shadow = 0x392616
+  const poleWidth = 14
+  const poleGap = 2
+
+  graphics.clear()
+
+  graphics.fillStyle(shadow)
+  graphics.fillRect(0, height - 4, width, 4)
+
+  graphics.fillStyle(support)
+  graphics.fillRect(0, height - 7, width, 3)
+
+  for (let x = 0; x < width; x += poleWidth + poleGap) {
+    const currentWidth = Math.min(poleWidth, width - x)
+    if (currentWidth <= 0) {
+      continue
+    }
+
+    graphics.fillStyle(poleOutline)
+    graphics.fillRect(x, 0, currentWidth, height - 5)
+
+    graphics.fillStyle(poleFill)
+    graphics.fillRect(x + 1, 0, Math.max(currentWidth - 2, 1), height - 8)
+
+    graphics.fillStyle(poleHighlight)
+    graphics.fillRect(x + 1, 0, Math.max(currentWidth - 2, 1), 1)
+
+    graphics.fillStyle(poleShadow)
+    graphics.fillRect(x + 1, 6, Math.max(currentWidth - 2, 1), 1)
+    graphics.fillRect(x + 1, 13, Math.max(currentWidth - 2, 1), 1)
+    graphics.fillRect(x + 1, height - 8, Math.max(currentWidth - 2, 1), 1)
+  }
+
+  graphics.fillStyle(ropeShadow)
+  ;[14, 30, 46, 62].forEach((x) => {
+    if (x < width) {
+      graphics.fillRect(x, 2, Math.min(2, width - x), height - 8)
+    }
+  })
+
+  graphics.fillStyle(rope)
+  ;[14, 30, 46, 62].forEach((x) => {
+    if (x < width) {
+      graphics.fillRect(x, 1, Math.min(2, width - x), height - 10)
+      graphics.fillRect(Math.max(x - 1, 0), 7, Math.min(4, width - Math.max(x - 1, 0)), 1)
+    }
+  })
+}
+
+function drawCanalPlatform(graphics, width, height) {
+  const concreteHighlight = 0xd5d0bf
+  const concreteTop = 0xb8b19e
+  const concreteLip = 0x8c877a
+  const concreteFace = 0x77746b
+  const concreteShadow = 0x5b5953
+  const crack = 0x4e4d48
+  const moss = 0x6e7b4f
+  const mud = 0x5d4227
+  const mudShadow = 0x3c2818
+
+  graphics.clear()
+
+  graphics.fillStyle(concreteHighlight)
+  graphics.fillRect(0, 0, width, 1)
+
+  graphics.fillStyle(concreteTop)
+  graphics.fillRect(0, 1, width, 4)
+
+  graphics.fillStyle(concreteLip)
+  graphics.fillRect(0, 5, width, 2)
+
+  graphics.fillStyle(concreteFace)
+  graphics.fillRect(0, 7, width, Math.max(height - 11, 1))
+
+  graphics.fillStyle(concreteShadow)
+  graphics.fillRect(0, 13, width, Math.max(height - 17, 1))
+
+  graphics.fillStyle(moss)
+  graphics.fillRect(10, 6, 8, 2)
+  graphics.fillRect(31, 6, 10, 2)
+  graphics.fillRect(50, 6, 7, 2)
+
+  graphics.lineStyle(1, crack, 1)
+  graphics.beginPath()
+  graphics.moveTo(12, 10)
+  graphics.lineTo(17, 13)
+  graphics.lineTo(15, 16)
+  graphics.moveTo(34, 9)
+  graphics.lineTo(39, 11)
+  graphics.lineTo(36, 15)
+  graphics.moveTo(53, 11)
+  graphics.lineTo(58, 14)
+  graphics.strokePath()
+
+  graphics.fillStyle(mud)
+  graphics.fillRect(0, height - 4, width, 2)
+  graphics.fillRect(6, height - 6, 10, 2)
+  graphics.fillRect(42, height - 6, 14, 2)
+
+  graphics.fillStyle(mudShadow)
+  graphics.fillRect(0, height - 2, width, 2)
 }
 
 function drawCanalDry(graphics, width, height) {
@@ -223,25 +630,120 @@ function drawCanalWater(graphics, width, height, frameIndex) {
 }
 
 function drawHouse(graphics, width, height) {
+  const shadow = 0x2e1a11
+  const earth = 0x4c2d1b
+  const post = 0x5e3c28
+  const postHighlight = 0x8a6243
+  const wallDark = 0x6e4d30
+  const wallMid = 0x946845
+  const wallLight = 0xb88558
+  const roofDark = 0x4d2318
+  const roofMid = 0x6d3324
+  const roofLight = 0x8f5038
+  const trim = 0x3b2318
+  const windowFrame = 0x583623
+  const windowLight = 0xe8d7aa
+  const windowShadow = 0xb9915d
+  const doorway = 0x26140d
+  const doorstep = 0x6f5535
+  const grass = 0x7b8551
+
   graphics.clear()
-  graphics.fillStyle(0x3b291d, 0.28)
-  graphics.fillEllipse(width * 0.5, height - 4, width * 0.82, 12)
+  graphics.fillStyle(shadow, 0.32)
+  graphics.fillEllipse(width * 0.5, height - 4, width * 0.84, 12)
 
-  graphics.fillStyle(0xb98a5b)
-  graphics.fillRoundedRect(12, 30, width - 24, height - 40, 6)
+  graphics.fillStyle(earth, 0.72)
+  graphics.fillRoundedRect(16, height - 10, width - 32, 6, 3)
 
-  graphics.fillStyle(0x7d4635)
-  graphics.fillTriangle(width * 0.5, 8, 4, 34, width - 4, 34)
+  graphics.fillStyle(post)
+  graphics.fillRect(20, 32, 6, height - 18)
+  graphics.fillRect(33, 34, 5, height - 20)
+  graphics.fillRect(width - 38, 34, 5, height - 20)
+  graphics.fillRect(width - 26, 32, 6, height - 18)
 
-  graphics.fillStyle(0x68422f)
-  graphics.fillRoundedRect(width * 0.42, height - 30, 14, 20, 4)
+  graphics.fillStyle(postHighlight)
+  graphics.fillRect(21, 33, 1, height - 20)
+  graphics.fillRect(width - 25, 33, 1, height - 20)
 
-  graphics.fillStyle(0xe8d8a9)
-  graphics.fillRect(16, 38, 12, 10)
-  graphics.fillRect(width - 28, 38, 12, 10)
+  graphics.fillStyle(roofDark)
+  graphics.fillTriangle(width * 0.5, 5, 4, 32, width - 4, 36)
 
-  graphics.lineStyle(2, 0x4c3020, 0.8)
-  graphics.strokeRoundedRect(12, 30, width - 24, height - 40, 6)
+  graphics.fillStyle(roofMid)
+  graphics.fillTriangle(width * 0.5, 8, 8, 32, width - 10, 35)
+
+  graphics.lineStyle(2, roofLight, 0.9)
+  graphics.beginPath()
+  graphics.moveTo(width * 0.5, 9)
+  graphics.lineTo(18, 28)
+  graphics.moveTo(width * 0.5, 9)
+  graphics.lineTo(width - 24, 28)
+  graphics.strokePath()
+
+  graphics.lineStyle(1.5, trim, 0.75)
+  ;[18, 22, 26, 30].forEach((roofY) => {
+    graphics.beginPath()
+    graphics.moveTo(16 + (roofY - 18), roofY)
+    graphics.lineTo(width - 16 - Math.max(roofY - 18, 0), roofY + 2)
+    graphics.strokePath()
+  })
+
+  graphics.fillStyle(trim)
+  graphics.fillRect(13, 31, width - 26, 4)
+
+  graphics.fillStyle(wallDark)
+  graphics.fillRoundedRect(18, 34, width - 36, height - 24, 5)
+
+  graphics.fillStyle(wallMid)
+  graphics.fillRoundedRect(20, 36, width - 40, height - 28, 4)
+
+  graphics.fillStyle(wallLight)
+  graphics.fillRect(23, 38, 18, 3)
+  graphics.fillRect(23, 44, 10, 2)
+
+  graphics.lineStyle(1.5, wallDark, 0.5)
+  ;[30, 39, 48, 58, 67].forEach((panelX) => {
+    graphics.beginPath()
+    graphics.moveTo(panelX, 38)
+    graphics.lineTo(panelX, height - 16)
+    graphics.strokePath()
+  })
+  graphics.beginPath()
+  graphics.moveTo(22, 48)
+  graphics.lineTo(width - 22, 48)
+  graphics.strokePath()
+
+  graphics.fillStyle(doorway)
+  graphics.fillRoundedRect(width * 0.44, height - 32, 14, 22, 4)
+
+  graphics.fillStyle(0x4f3324)
+  graphics.fillRect(width * 0.45, height - 29, 4, 16)
+
+  graphics.fillStyle(doorstep)
+  graphics.fillRoundedRect(width * 0.41, height - 9, 18, 4, 2)
+
+  graphics.fillStyle(windowFrame)
+  graphics.fillRoundedRect(23, 40, 16, 12, 2)
+  graphics.fillRoundedRect(width - 39, 41, 14, 11, 2)
+
+  graphics.fillStyle(windowLight)
+  graphics.fillRect(26, 43, 10, 6)
+  graphics.fillRect(width - 36, 44, 8, 5)
+
+  graphics.fillStyle(windowShadow)
+  graphics.fillRect(26, 49, 10, 1)
+  graphics.fillRect(width - 36, 48, 8, 1)
+
+  graphics.lineStyle(1.5, trim, 0.7)
+  graphics.beginPath()
+  graphics.moveTo(31, 40)
+  graphics.lineTo(31, 52)
+  graphics.moveTo(width - 32, 41)
+  graphics.lineTo(width - 32, 52)
+  graphics.strokePath()
+
+  graphics.fillStyle(grass, 0.62)
+  graphics.fillRect(18, height - 10, 8, 2)
+  graphics.fillRect(width - 28, height - 10, 9, 2)
 }
 
 function drawTree(graphics, width, height) {
@@ -379,35 +881,96 @@ function drawDryCrop(graphics, width, height) {
 }
 
 function drawFertilizerSack(graphics, width, height) {
+  const shadow = 0x2c1912
+  const sackDark = 0xa99979
+  const sackMid = 0xd6c7a6
+  const sackLight = 0xeadebe
+  const stitch = 0x7a6447
+  const strap = 0xaf6d3c
+  const strapLight = 0xd18b54
+  const label = 0x6b573c
+  const fold = 0x9b8563
+
   graphics.clear()
-  graphics.fillStyle(0x3b291d, 0.22)
+  graphics.fillStyle(shadow, 0.24)
   graphics.fillEllipse(width * 0.5, height - 4, width * 0.74, 10)
 
-  graphics.fillStyle(0xd9ceb0)
-  graphics.fillRoundedRect(10, 10, width - 20, height - 18, 10)
-  graphics.fillStyle(0xb26e3a)
-  graphics.fillRect(16, 18, width - 32, 8)
-  graphics.fillStyle(0x6e5738)
-  graphics.fillRoundedRect(width * 0.32, height * 0.45, width * 0.36, height * 0.22, 4)
-  graphics.fillStyle(0xe7ddb7)
+  graphics.fillStyle(sackDark)
+  graphics.fillRoundedRect(8, 10, width - 16, height - 16, 10)
+
+  graphics.fillStyle(sackMid)
+  graphics.fillRoundedRect(10, 12, width - 20, height - 20, 9)
+
+  graphics.fillStyle(sackLight)
   graphics.fillRect(14, 14, width - 28, 3)
+  graphics.fillRect(13, 18, 4, height - 24)
+
+  graphics.fillStyle(strap)
+  graphics.fillRect(14, 18, width - 28, 8)
+
+  graphics.fillStyle(strapLight)
+  graphics.fillRect(16, 19, width - 32, 2)
+
+  graphics.fillStyle(label)
+  graphics.fillRoundedRect(width * 0.3, height * 0.46, width * 0.4, height * 0.22, 4)
+
+  graphics.fillStyle(fold)
+  graphics.fillRect(11, 27, 3, 8)
+  graphics.fillRect(width - 14, 28, 3, 7)
+  graphics.fillRect(width * 0.5 - 1, 31, 2, 8)
+
+  graphics.lineStyle(1.5, stitch, 0.7)
+  graphics.beginPath()
+  graphics.moveTo(14, 17)
+  graphics.lineTo(width - 14, 17)
+  graphics.moveTo(width * 0.5, 10)
+  graphics.lineTo(width * 0.5, height - 9)
+  graphics.strokePath()
 }
 
 function drawDebtLedger(graphics, width, height) {
+  const shadow = 0x2c1912
+  const coverDark = 0x4b2f24
+  const coverMid = 0x6a4433
+  const coverLight = 0x85563f
+  const paper = 0xe5d8b7
+  const paperShadow = 0xba9768
+  const line = 0x9c7b52
+  const strap = 0x3c2a20
+  const corner = 0xc7b18e
+
   graphics.clear()
-  graphics.fillStyle(0x3b291d, 0.22)
+  graphics.fillStyle(shadow, 0.24)
   graphics.fillEllipse(width * 0.5, height - 4, width * 0.68, 10)
 
-  graphics.fillStyle(0x5f3f2e)
-  graphics.fillRoundedRect(8, 8, width - 16, height - 16, 6)
-  graphics.fillStyle(0x7b523c)
-  graphics.fillRoundedRect(12, 10, width - 20, height - 20, 5)
-  graphics.fillStyle(0xe4d6b5)
-  graphics.fillRect(16, 14, width - 28, height - 28)
-  graphics.lineStyle(2, 0xa48157, 0.8)
-  graphics.lineBetween(20, 20, width - 18, 20)
-  graphics.lineBetween(20, 26, width - 18, 26)
-  graphics.lineBetween(20, 32, width - 18, 32)
+  graphics.fillStyle(coverDark)
+  graphics.fillRoundedRect(6, 8, width - 12, height - 14, 6)
+
+  graphics.fillStyle(coverMid)
+  graphics.fillRoundedRect(8, 10, width - 16, height - 18, 5)
+
+  graphics.fillStyle(coverLight)
+  graphics.fillRect(10, 12, 4, height - 22)
+
+  graphics.fillStyle(paper)
+  graphics.fillRect(15, 14, width - 24, height - 24)
+
+  graphics.fillStyle(corner)
+  graphics.fillTriangle(width - 16, 14, width - 9, 14, width - 9, 21)
+
+  graphics.fillStyle(paperShadow)
+  graphics.fillRect(15, height - 11, width - 24, 2)
+
+  graphics.lineStyle(1.5, line, 0.85)
+  ;[20, 25, 30].forEach((lineY) => {
+    graphics.beginPath()
+    graphics.moveTo(19, lineY)
+    graphics.lineTo(width - 12, lineY)
+    graphics.strokePath()
+  })
+
+  graphics.fillStyle(strap)
+  graphics.fillRect(width - 12, 11, 3, height - 20)
 }
 
 function drawCommunityBoard(graphics, width, height) {
@@ -758,8 +1321,6 @@ export class PlaceholderTextureFactory {
 
     const npcPalettes = [
       [TEXTURE_KEYS.npcs.elder, { skin: 0xd1b694, hair: 0x6b6157, body: 0x7f6a54, accent: 0xe2d4b5 }],
-      [TEXTURE_KEYS.npcs.mother, { skin: 0xcfa078, hair: 0x3a251a, body: 0xa45d4a, accent: 0xf0d59a }],
-      [TEXTURE_KEYS.npcs.child, { skin: 0xe0ba92, hair: 0x352015, body: 0x4f7ca1, accent: 0xf2e7bc }],
       [TEXTURE_KEYS.npcs.farmer, { skin: 0xc79262, hair: 0x2a1b15, body: 0x6f8251, accent: 0xd8c074 }],
     ]
 
@@ -772,12 +1333,51 @@ export class PlaceholderTextureFactory {
       )
     })
 
+    register(
+      createTexture(scene, TEXTURE_KEYS.npcs.mother, 40, 56, drawMotherCharacter),
+      TEXTURE_KEYS.npcs.mother,
+    )
+    register(
+      createTexture(scene, TEXTURE_KEYS.npcs.child, 32, 48, drawChildCharacter),
+      TEXTURE_KEYS.npcs.child,
+    )
+
     register(createTexture(scene, TEXTURE_KEYS.terrain.ground, 64, 64, drawGround), TEXTURE_KEYS.terrain.ground)
     register(
       createTexture(scene, TEXTURE_KEYS.terrain.groundGreen, 64, 64, drawGroundGreen),
       TEXTURE_KEYS.terrain.groundGreen,
     )
-    register(createTexture(scene, 'platform', 64, 24, drawPlatform), 'platform')
+    register(
+      createTexture(scene, TEXTURE_KEYS.terrain.platformTerraceMain, 64, 24, drawTerracePlatform),
+      TEXTURE_KEYS.terrain.platformTerraceMain,
+    )
+    register(
+      createTexture(scene, TEXTURE_KEYS.terrain.platformTerraceSmall, 64, 24, drawTerracePlatformSmall),
+      TEXTURE_KEYS.terrain.platformTerraceSmall,
+    )
+    register(
+      createTexture(scene, TEXTURE_KEYS.terrain.platformTerraceDry, 64, 24, (graphics, width, height) => {
+        drawTerracePlatform(graphics, width, height, {
+          grassHighlight: 0xb5b07d,
+          grass: 0x8c8a57,
+          grassShadow: 0x67643d,
+          dryGrass: 0xd2bb7c,
+          soilHighlight: 0xa26a3c,
+          soilMid: 0x784828,
+          soilLow: 0x5d361f,
+        })
+      }),
+      TEXTURE_KEYS.terrain.platformTerraceDry,
+    )
+    register(
+      createTexture(scene, TEXTURE_KEYS.terrain.platformBamboo, 64, 24, drawBambooPlatform),
+      TEXTURE_KEYS.terrain.platformBamboo,
+    )
+    register(
+      createTexture(scene, TEXTURE_KEYS.terrain.platformCanal, 64, 24, drawCanalPlatform),
+      TEXTURE_KEYS.terrain.platformCanal,
+    )
+    register(createTexture(scene, 'platform', 64, 24, drawTerracePlatform), 'platform')
     register(createTexture(scene, TEXTURE_KEYS.terrain.canalDry, 64, 32, drawCanalDry), TEXTURE_KEYS.terrain.canalDry)
 
     WATER_FRAME_KEYS.forEach((key, frameIndex) => {
@@ -789,7 +1389,7 @@ export class PlaceholderTextureFactory {
       )
     })
 
-    register(createTexture(scene, TEXTURE_KEYS.props.house, 80, 64, drawHouse), TEXTURE_KEYS.props.house)
+    register(createTexture(scene, TEXTURE_KEYS.props.house, 96, 76, drawHouse), TEXTURE_KEYS.props.house)
     register(createTexture(scene, TEXTURE_KEYS.props.tree, 64, 96, drawTree), TEXTURE_KEYS.props.tree)
     register(createTexture(scene, TEXTURE_KEYS.props.cross, 40, 64, drawCross), TEXTURE_KEYS.props.cross)
     register(createTexture(scene, TEXTURE_KEYS.props.chapel, 80, 96, drawChapel), TEXTURE_KEYS.props.chapel)
@@ -854,7 +1454,66 @@ export class PlaceholderTextureFactory {
   }
 
   static ensureAnimations(scene) {
+    const playerTexture = scene.textures.exists(TEXTURE_KEYS.player)
+      ? scene.textures.get(TEXTURE_KEYS.player)
+      : null
+    const farmerTexture = scene.textures.exists(TEXTURE_KEYS.npcs.farmer)
+      ? scene.textures.get(TEXTURE_KEYS.npcs.farmer)
+      : null
+
+    if (playerTexture?.has?.(11) && !scene.anims.exists(PLAYER_ANIMATION_KEYS.idle)) {
+      scene.anims.create({
+        key: PLAYER_ANIMATION_KEYS.idle,
+        frames: scene.anims.generateFrameNumbers(TEXTURE_KEYS.player, { start: 0, end: 3 }),
+        frameRate: 4,
+        repeat: -1,
+      })
+
+      scene.anims.create({
+        key: PLAYER_ANIMATION_KEYS.walk,
+        frames: scene.anims.generateFrameNumbers(TEXTURE_KEYS.player, { start: 4, end: 9 }),
+        frameRate: 10,
+        repeat: -1,
+      })
+
+      scene.anims.create({
+        key: PLAYER_ANIMATION_KEYS.jump,
+        frames: [{ key: TEXTURE_KEYS.player, frame: 10 }],
+        frameRate: 1,
+      })
+
+      scene.anims.create({
+        key: PLAYER_ANIMATION_KEYS.fall,
+        frames: [{ key: TEXTURE_KEYS.player, frame: 11 }],
+        frameRate: 1,
+      })
+    }
+
+    if (farmerTexture?.has?.(7) && !scene.anims.exists(FARMER_ANIMATION_KEYS.idle)) {
+      scene.anims.create({
+        key: FARMER_ANIMATION_KEYS.idle,
+        frames: scene.anims.generateFrameNumbers(TEXTURE_KEYS.npcs.farmer, { start: 0, end: 3 }),
+        frameRate: 4,
+        repeat: -1,
+      })
+
+      scene.anims.create({
+        key: FARMER_ANIMATION_KEYS.talk,
+        frames: scene.anims.generateFrameNumbers(TEXTURE_KEYS.npcs.farmer, { start: 4, end: 7 }),
+        frameRate: 5,
+        repeat: -1,
+      })
+    }
+
     if (scene.anims.exists(ANIMATION_KEYS.waterFlow)) {
+      if (!scene.anims.exists(ANIMATION_KEYS.pumpDrip)) {
+        scene.anims.create({
+          key: ANIMATION_KEYS.pumpDrip,
+          frames: PUMP_DRIP_FRAME_KEYS.map((key) => ({ key })),
+          frameRate: 6,
+          repeat: -1,
+        })
+      }
       return
     }
 
@@ -865,7 +1524,16 @@ export class PlaceholderTextureFactory {
       frameRate: 5,
       repeat: -1,
     })
+
+    if (!scene.anims.exists(ANIMATION_KEYS.pumpDrip)) {
+      scene.anims.create({
+        key: ANIMATION_KEYS.pumpDrip,
+        frames: PUMP_DRIP_FRAME_KEYS.map((key) => ({ key })),
+        frameRate: 6,
+        repeat: -1,
+      })
+    }
   }
 }
 
-export { WATER_FRAME_KEYS }
+export { PUMP_DRIP_FRAME_KEYS, WATER_FRAME_KEYS }

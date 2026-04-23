@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { PLAYER_ANIMATION_KEYS } from '../utils/constants.js';
 
 const DEFAULTS = Object.freeze({
   textureKey: 'player',
@@ -63,6 +64,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
       jumpAlt: Phaser.Input.Keyboard.KeyCodes.SPACE,
       interact: Phaser.Input.Keyboard.KeyCodes.E,
     });
+
+    if (scene.anims.exists(PLAYER_ANIMATION_KEYS.idle)) {
+      this.anims.play(PLAYER_ANIMATION_KEYS.idle);
+    }
   }
 
   update(time) {
@@ -79,6 +84,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
       this.lastJumpPressedAt = -Infinity;
       this.pendingJumpCue = false;
       this.setVelocityX(0);
+      this.syncAnimationState();
       return;
     }
 
@@ -117,6 +123,8 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     if (jumpReleased && this.body.velocity.y < -180) {
       this.setVelocityY(this.body.velocity.y * 0.58);
     }
+
+    this.syncAnimationState();
   }
 
   getHorizontalInput() {
@@ -169,6 +177,28 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     const shouldPlay = this.pendingJumpCue;
     this.pendingJumpCue = false;
     return shouldPlay;
+  }
+
+  syncAnimationState() {
+    if (!this.body || !this.scene?.anims) {
+      return;
+    }
+
+    let animationKey = PLAYER_ANIMATION_KEYS.idle;
+    const horizontalSpeed = Math.abs(this.body.velocity.x);
+    const verticalSpeed = this.body.velocity.y;
+
+    if (verticalSpeed < -40) {
+      animationKey = PLAYER_ANIMATION_KEYS.jump;
+    } else if (!this.isGrounded() || verticalSpeed > 60) {
+      animationKey = PLAYER_ANIMATION_KEYS.fall;
+    } else if (horizontalSpeed > 18) {
+      animationKey = PLAYER_ANIMATION_KEYS.walk;
+    }
+
+    if (this.scene.anims.exists(animationKey)) {
+      this.anims.play(animationKey, true);
+    }
   }
 }
 

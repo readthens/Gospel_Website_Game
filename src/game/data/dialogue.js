@@ -10,6 +10,7 @@ export const DIALOGUE_KEYS = Object.freeze({
   FARMER_1: 'farmer1',
   DRY_CROPS: 'dryCrops',
   CANAL: 'canal',
+  WATER_PUMP: 'waterPump',
   PROJECT_POSTER: 'poster',
   CANAL_DAMAGE: 'canalDamage',
   CANAL_REVEAL: 'canalReveal',
@@ -165,6 +166,32 @@ export const DIALOGUE = Object.freeze({
         lines: [
           'Malinis ang papel.',
           'Sira pa rin ang kanal.',
+        ],
+      },
+    ],
+  },
+  [DIALOGUE_KEYS.WATER_PUMP]: {
+    turns: [
+      {
+        speaker: 'Water Pump',
+        lines: [
+          'May patak pa sa dulo ng tubo.',
+          'Pero patak lang.',
+          'Hindi ito ang agos na kailangan ng palayan.',
+        ],
+      },
+      {
+        speaker: 'Player',
+        lines: [
+          'Parang pilit na lang ang labas ng tubig.',
+          'Hindi talaga aabot sa tanim kung ganito.',
+        ],
+      },
+      {
+        speaker: 'Narration',
+        lines: [
+          'Gumagana sa papel.',
+          'Sa bukid, halos wala nang lumalabas.',
         ],
       },
     ],
@@ -634,6 +661,11 @@ export const DIALOGUE_SEQUENCES = Object.freeze({
     key: DIALOGUE_KEYS.PROJECT_POSTER,
     beat: 'canal',
     dialogueKeys: [DIALOGUE_KEYS.PROJECT_POSTER],
+  }),
+  [DIALOGUE_KEYS.WATER_PUMP]: createSequence({
+    key: DIALOGUE_KEYS.WATER_PUMP,
+    beat: 'canal',
+    dialogueKeys: [DIALOGUE_KEYS.WATER_PUMP],
   }),
   [DIALOGUE_KEYS.CANAL_DAMAGE]: createSequence({
     key: DIALOGUE_KEYS.CANAL_DAMAGE,

@@ -504,23 +504,10 @@ export class GameScene extends Phaser.Scene {
     this.atmosphere.shadowHalo = this.add.ellipse(canalCenter + 120, height - 308, 540, 280, 0x1c1018, 0).setDepth(-10);
     this.atmosphere.endingLight = this.add.ellipse(endingCenter + 70, 150, 620, 210, 0xecf1cd, 0.06).setDepth(-21);
 
-    [0.1, 0.24, 0.41, 0.58, 0.76, 0.92].map((ratio) => Math.round(width * ratio)).forEach((x, index) => {
-      const hill = this.add.ellipse(
-        x,
-        WORLD_LAYOUT.world.height - 212 + index * 8,
-        620,
-        220,
-        index >= 4 ? 0x7aa35d : 0x6f9360,
-        0.7
-      );
-      hill.setDepth(-15);
-    });
-
-    [0.05, 0.22, 0.39, 0.57, 0.76, 0.93].map((ratio) => Math.round(width * ratio)).forEach((x) => {
-      this.add.circle(x, 122, 44, 0xffffff, 0.8).setDepth(-22);
-      this.add.circle(x + 42, 138, 30, 0xffffff, 0.7).setDepth(-22);
-      this.add.circle(x - 40, 140, 26, 0xffffff, 0.7).setDepth(-22);
-    });
+    this.createSkyAtmosphereLayer();
+    this.createFarBackgroundLayer();
+    this.createMidBackgroundLayer();
+    this.createNearBackgroundLayer();
 
     this.tweens.add({
       targets: [this.atmosphere.hopeWash, this.atmosphere.endingLight],
@@ -541,6 +528,501 @@ export class GameScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
+
+  createSkyAtmosphereLayer() {
+    const { width, height } = WORLD_LAYOUT.world;
+    const layer = this.add.graphics().setDepth(-19).setScrollFactor(0.86);
+
+    [
+      [0, 92, 0xc9d0c1, 0.32],
+      [92, 90, 0xbec8b7, 0.26],
+      [182, 86, 0xb4c0a8, 0.2],
+      [268, 54, 0xa7b58f, 0.16],
+    ].forEach(([y, bandHeight, color, alpha]) => {
+      layer.fillStyle(color, alpha);
+      layer.fillRect(0, y, width, bandHeight);
+    });
+
+    const drawBlockCloud = (x, y, blocks, alpha = 0.14) => {
+      layer.fillStyle(0xe4dfc6, alpha);
+      blocks.forEach(([offsetX, offsetY, blockWidth, blockHeight]) => {
+        layer.fillRect(x + offsetX, y + offsetY, blockWidth, blockHeight);
+      });
+    };
+
+    drawBlockCloud(360, 110, [[0, 12, 120, 16], [48, 0, 160, 18], [170, 14, 90, 14]], 0.12);
+    drawBlockCloud(2260, 132, [[0, 8, 150, 14], [70, 0, 190, 16], [230, 10, 120, 14]], 0.1);
+    drawBlockCloud(4680, 104, [[0, 12, 110, 14], [54, 0, 170, 16], [190, 12, 100, 12]], 0.1);
+    drawBlockCloud(6060, 128, [[0, 10, 140, 14], [64, 0, 190, 18], [240, 12, 96, 12]], 0.12);
+    drawBlockCloud(3360, 152, [[0, 8, 94, 12], [46, 0, 144, 14], [178, 10, 70, 10]], 0.07);
+
+    layer.fillStyle(0xd9c68a, 0.08);
+    layer.fillRect(240, 118, 420, 20);
+    layer.fillRect(320, 145, 620, 14);
+    layer.fillStyle(0xd6bd78, 0.055);
+    layer.fillRect(4080, 158, 760, 16);
+    layer.fillRect(4920, 190, 980, 12);
+    layer.fillStyle(0x7d936d, 0.1);
+    layer.fillRect(0, height - 316, width, 34);
+  }
+
+  createFarBackgroundLayer() {
+    const { width, height } = WORLD_LAYOUT.world;
+    const layer = this.add.graphics().setDepth(-17).setScrollFactor(0.9);
+
+    const drawTerraceStack = (x, y, widths, alpha = 0.2) => {
+      widths.forEach((rowWidth, index) => {
+        const rowY = y + index * 18;
+        layer.fillStyle(index % 2 === 0 ? 0x8aa174 : 0x7f9669, alpha - index * 0.012);
+        layer.fillRect(x + index * 36, rowY, rowWidth, 8);
+        layer.fillStyle(0xc3b47d, 0.08);
+        layer.fillRect(x + index * 36, rowY + 8, rowWidth * 0.82, 3);
+      });
+    };
+
+    const drawPixelTreeMass = (x, y, pattern, alpha = 0.13) => {
+      pattern.forEach(([offsetX, offsetY, blockWidth, blockHeight]) => {
+        layer.fillStyle(0x526b48, alpha);
+        layer.fillRect(x + offsetX, y + offsetY, blockWidth, blockHeight);
+        layer.fillStyle(0x6d8056, alpha * 0.55);
+        layer.fillRect(x + offsetX + 8, y + offsetY + 4, blockWidth * 0.42, Math.max(4, blockHeight * 0.18));
+      });
+    };
+
+    const drawFarFieldBands = (x, y, bandWidth, bands = 4, alpha = 0.15, greener = false) => {
+      for (let index = 0; index < bands; index += 1) {
+        const rowY = y + index * 16;
+        const offset = index * 34;
+        const rowWidth = bandWidth - index * 76;
+        layer.fillStyle(greener ? 0x8aa76d : 0x8b935f, alpha - index * 0.016);
+        layer.fillRect(x + offset, rowY, rowWidth, 8);
+        layer.fillStyle(greener ? 0xb8cfa0 : 0xc0b37a, alpha * 0.32);
+        layer.fillRect(x + offset + 12, rowY + 8, rowWidth * 0.72, 2);
+      }
+    };
+
+    const drawDistantHut = (x, y, hutWidth = 62, alpha = 0.12) => {
+      layer.fillStyle(0x5b4d36, alpha);
+      layer.fillRect(x + hutWidth * 0.2, y, hutWidth * 0.6, hutWidth * 0.22);
+      layer.fillStyle(0x6a412a, alpha * 1.2);
+      layer.fillTriangle(x, y, x + hutWidth * 0.5, y - hutWidth * 0.24, x + hutWidth, y);
+      layer.fillStyle(0x938262, alpha * 0.5);
+      layer.fillRect(x + hutWidth * 0.32, y + hutWidth * 0.08, hutWidth * 0.16, hutWidth * 0.14);
+    };
+
+    [
+      [-160, 410, 620, 272, 0xd3d6c8, 0.14],
+      [420, 390, 1160, 270, 0xc8cfbd, 0.16],
+      [1340, 420, 2140, 274, 0xd3d5c4, 0.13],
+      [3320, 398, 4460, 274, 0xcbd2bf, 0.14],
+      [5200, 406, width + 220, 274, 0xd0d2c2, 0.14],
+    ].forEach(([leftX, peakX, rightX, baseY, color, alpha]) => {
+      layer.fillStyle(color, alpha);
+      layer.fillTriangle(leftX, height - 346, peakX, baseY, rightX, height - 346);
+    });
+
+    layer.fillStyle(0x71895f, 0.18);
+    layer.fillRect(0, height - 334, width, 18);
+    layer.fillStyle(0x657b53, 0.14);
+    layer.fillRect(0, height - 310, width, 18);
+
+    drawPixelTreeMass(260, height - 324, [[0, 10, 78, 30], [52, 0, 108, 42], [140, 16, 92, 28], [220, 6, 114, 36]], 0.12);
+    drawPixelTreeMass(1450, height - 332, [[0, 18, 94, 28], [84, 0, 118, 42], [184, 12, 126, 34], [292, 22, 84, 24]], 0.11);
+    drawPixelTreeMass(3860, height - 326, [[0, 12, 86, 30], [76, 0, 126, 38], [190, 16, 96, 26], [276, 8, 116, 34]], 0.1);
+    drawPixelTreeMass(6400, height - 330, [[0, 14, 96, 30], [88, 0, 130, 42], [204, 12, 130, 34], [320, 20, 104, 26]], 0.14);
+
+    drawTerraceStack(160, height - 292, [640, 560, 468, 360], 0.2);
+    drawTerraceStack(960, height - 302, [760, 636, 500, 386], 0.18);
+    drawTerraceStack(3960, height - 298, [720, 590, 460, 350], 0.17);
+    drawTerraceStack(5480, height - 304, [840, 690, 520, 380], 0.22);
+    drawFarFieldBands(40, height - 258, 1040, 4, 0.13);
+    drawFarFieldBands(1240, height - 266, 1140, 4, 0.12);
+    drawFarFieldBands(2920, height - 260, 1180, 4, 0.1);
+    drawFarFieldBands(4560, height - 264, 1240, 4, 0.12);
+    drawFarFieldBands(5940, height - 266, 1120, 4, 0.16, true);
+    drawDistantHut(820, height - 296, 70, 0.1);
+    drawDistantHut(3100, height - 288, 62, 0.09);
+    drawDistantHut(6110, height - 302, 78, 0.12);
+
+    layer.lineStyle(7, 0x7e8580, 0.14);
+    layer.lineBetween(2440, height - 350, 3440, height - 340);
+    layer.fillStyle(0x747b76, 0.12);
+    [2560, 2860, 3160].forEach((x) => {
+      layer.fillRect(x, height - 342, 14, 78);
+    });
+  }
+
+  createMidBackgroundLayer() {
+    const { height } = WORLD_LAYOUT.world;
+    const layer = this.add.graphics().setDepth(-7).setScrollFactor(0.97);
+
+    const drawFieldBorders = (startX, y, width, rows = 3, alpha = 0.2) => {
+      for (let index = 0; index < rows; index += 1) {
+        const rowY = y + index * 22;
+        layer.fillStyle(0x586644, alpha);
+        layer.fillRect(startX + index * 28, rowY, width - index * 64, 5);
+        layer.fillStyle(0xc1aa68, alpha * 0.4);
+        layer.fillRect(startX + index * 28, rowY + 5, (width - index * 64) * 0.72, 2);
+      }
+    };
+
+    const drawRiceGrid = (startX, y, width, columns = 5, alpha = 0.12) => {
+      layer.lineStyle(2, 0x62714c, alpha);
+      for (let index = 0; index < columns; index += 1) {
+        const x = startX + index * (width / columns);
+        layer.lineBetween(x, y + 2, x + 58, y + 74);
+      }
+      layer.lineStyle(1, 0xc8b56e, alpha * 0.64);
+      layer.lineBetween(startX, y + 24, startX + width, y + 18);
+      layer.lineBetween(startX + 20, y + 52, startX + width - 30, y + 46);
+    };
+
+    const drawTree = (x, y, scale = 1, alpha = 0.22) => {
+      layer.fillStyle(0x4f4a32, alpha);
+      layer.fillRect(x - 4 * scale, y - 52 * scale, 8 * scale, 52 * scale);
+      layer.fillStyle(0x5d734a, alpha);
+      layer.fillRect(x - 28 * scale, y - 80 * scale, 56 * scale, 20 * scale);
+      layer.fillRect(x - 40 * scale, y - 64 * scale, 80 * scale, 24 * scale);
+      layer.fillRect(x - 24 * scale, y - 42 * scale, 48 * scale, 16 * scale);
+      layer.fillStyle(0x75885b, alpha * 0.62);
+      layer.fillRect(x - 20 * scale, y - 74 * scale, 28 * scale, 6 * scale);
+      layer.fillRect(x + 8 * scale, y - 58 * scale, 20 * scale, 6 * scale);
+    };
+
+    const drawPole = (x, groundY, poleHeight = 112, alpha = 0.3) => {
+      layer.fillStyle(0x4f4230, alpha);
+      layer.fillRect(x - 3, groundY - poleHeight, 6, poleHeight);
+      layer.fillRect(x - 20, groundY - poleHeight + 22, 40, 5);
+      layer.lineStyle(1, 0x4c4639, alpha * 0.85);
+      layer.lineBetween(x - 140, groundY - poleHeight + 30, x + 150, groundY - poleHeight + 22);
+    };
+
+    const drawRoof = (x, y, width, color = 0x6a3a25, alpha = 0.2) => {
+      layer.fillStyle(color, alpha);
+      layer.fillTriangle(x, y, x + width * 0.5, y - width * 0.22, x + width, y);
+      layer.fillRect(x + width * 0.18, y, width * 0.64, width * 0.18);
+      layer.fillStyle(0x9b7045, alpha * 0.42);
+      layer.fillRect(x + width * 0.28, y - width * 0.09, width * 0.35, 4);
+    };
+
+    const drawNipaHut = (x, groundY, width = 120, alpha = 0.18) => {
+      const wallY = groundY - width * 0.34;
+      layer.fillStyle(0x665640, alpha);
+      layer.fillRect(x + width * 0.2, wallY, width * 0.6, width * 0.26);
+      layer.fillStyle(0x7d6c48, alpha * 0.78);
+      layer.fillRect(x + width * 0.32, wallY + 8, width * 0.12, width * 0.16);
+      layer.fillRect(x + width * 0.58, wallY + 8, width * 0.1, width * 0.12);
+      layer.fillStyle(0x614326, alpha);
+      layer.fillTriangle(x, wallY + 4, x + width * 0.5, wallY - width * 0.22, x + width, wallY + 4);
+      layer.fillRect(x + width * 0.12, wallY, width * 0.76, 6);
+      layer.fillStyle(0x4b3f2d, alpha * 0.74);
+      layer.fillRect(x + width * 0.28, groundY - 18, 5, 18);
+      layer.fillRect(x + width * 0.68, groundY - 18, 5, 18);
+    };
+
+    const drawScarecrow = (x, groundY, alpha = 0.24) => {
+      layer.fillStyle(0x5f4d34, alpha);
+      layer.fillRect(x - 2, groundY - 64, 4, 56);
+      layer.fillRect(x - 30, groundY - 49, 60, 4);
+      layer.fillStyle(0xc2a05a, alpha);
+      layer.fillTriangle(x - 16, groundY - 67, x, groundY - 84, x + 16, groundY - 67);
+      layer.fillStyle(0x6f5b3f, alpha * 0.86);
+      layer.fillRect(x - 14, groundY - 47, 28, 28);
+    };
+
+    const drawBambooClump = (x, groundY, alpha = 0.18) => {
+      layer.fillStyle(0x4d6541, alpha);
+      for (let index = 0; index < 7; index += 1) {
+        const stemX = x + index * 8;
+        const stemHeight = 74 + (index % 3) * 12;
+        layer.fillRect(stemX, groundY - stemHeight, 3, stemHeight);
+        layer.fillRect(stemX - 10, groundY - stemHeight + 20, 18, 4);
+        layer.fillRect(stemX + 2, groundY - stemHeight + 38, 18, 4);
+      }
+    };
+
+    const drawFieldMarkers = (startX, groundY, count, gap, alpha = 0.18) => {
+      layer.fillStyle(0x5c4a31, alpha);
+      for (let index = 0; index < count; index += 1) {
+        const x = startX + index * gap;
+        layer.fillRect(x, groundY - 30 - (index % 2) * 5, 4, 34);
+        layer.fillStyle(index % 3 === 0 ? 0xd6c390 : 0x9e8a62, alpha * 0.7);
+        layer.fillRect(x + 5, groundY - 31 - (index % 2) * 5, 16, 8);
+        layer.fillStyle(0x5c4a31, alpha);
+      }
+    };
+
+    drawFieldBorders(160, height - 250, 900, 4, 0.18);
+    drawRiceGrid(190, height - 236, 760, 6, 0.1);
+    drawTree(560, height - 214, 0.76);
+    drawBambooClump(690, height - 212, 0.14);
+    drawPole(800, height - 212, 120, 0.28);
+    drawFieldMarkers(330, height - 214, 5, 122, 0.14);
+    drawRoof(1110, height - 226, 118, 0x6b3f28, 0.18);
+    drawScarecrow(940, height - 212, 0.18);
+    this.createBackgroundSign({
+      x: 430,
+      y: height - 262,
+      width: 96,
+      height: 38,
+      label: 'SERBISYO',
+      depth: -6,
+      alpha: 0.24,
+      includePortrait: true,
+    });
+
+    drawFieldBorders(1540, height - 244, 820, 3, 0.16);
+    drawRiceGrid(1510, height - 230, 720, 5, 0.09);
+    drawPole(1780, height - 206, 138, 0.28);
+    layer.fillStyle(0x4e5548, 0.22);
+    layer.fillRect(2148, height - 262, 70, 54);
+    layer.fillStyle(0x3d3f37, 0.2);
+    layer.fillRect(2136, height - 274, 94, 14);
+    layer.fillStyle(0x6d604d, 0.26);
+    [1888, 1992, 2260].forEach((x) => {
+      layer.fillRect(x, height - 236, 14, 42);
+      layer.fillRect(x - 8, height - 244, 30, 8);
+    });
+    this.createBackgroundSign({
+      x: 2295,
+      y: height - 290,
+      width: 142,
+      height: 48,
+      label: 'AYOS NA ANG',
+      sublabel: 'IRIGASYON',
+      depth: -6,
+      alpha: 0.3,
+    });
+
+    drawFieldBorders(2880, height - 246, 840, 3, 0.14);
+    drawRiceGrid(2860, height - 232, 820, 6, 0.08);
+    drawTree(3740, height - 220, 0.82, 0.18);
+    drawBambooClump(3390, height - 216, 0.12);
+    drawNipaHut(3420, height - 214, 120, 0.14);
+    drawRoof(3560, height - 230, 126, 0x68422e, 0.17);
+    drawRoof(3186, height - 222, 96, 0x5f432d, 0.14);
+    this.createBackgroundSign({
+      x: 3016,
+      y: height - 282,
+      width: 104,
+      height: 40,
+      label: 'PARA SA',
+      sublabel: 'BAYAN',
+      depth: -6,
+      alpha: 0.22,
+    });
+
+    drawFieldBorders(4300, height - 244, 950, 4, 0.16);
+    drawRiceGrid(4260, height - 230, 980, 7, 0.08);
+    drawPole(4720, height - 210, 118, 0.26);
+    drawTree(4960, height - 214, 0.72, 0.18);
+    drawBambooClump(4580, height - 214, 0.12);
+    drawScarecrow(5360, height - 214, 0.16);
+    drawFieldMarkers(4380, height - 212, 6, 136, 0.12);
+    this.createBackgroundSign({
+      x: 5120,
+      y: height - 286,
+      width: 136,
+      height: 46,
+      label: 'PROYEKTO PARA',
+      sublabel: 'SA MAGSASAKA',
+      depth: -6,
+      alpha: 0.28,
+    });
+
+    drawFieldBorders(5940, height - 246, 900, 4, 0.18);
+    drawRiceGrid(5920, height - 232, 980, 7, 0.1);
+    drawRoof(6280, height - 236, 150, 0x5f432c, 0.17);
+    drawNipaHut(6355, height - 216, 112, 0.13);
+    drawTree(6550, height - 222, 0.86, 0.24);
+    this.createBackgroundSign({
+      x: 5960,
+      y: height - 286,
+      width: 96,
+      height: 38,
+      label: 'UNLAD',
+      depth: -6,
+      alpha: 0.2,
+    });
+  }
+
+  createNearBackgroundLayer() {
+    const { height } = WORLD_LAYOUT.world;
+    const layer = this.add.graphics().setDepth(7).setScrollFactor(0.995);
+
+    const drawFence = (startX, y, postCount, gap, alpha = 0.32) => {
+      layer.fillStyle(0x513d27, alpha);
+      for (let index = 0; index < postCount; index += 1) {
+        const x = startX + gap * index;
+        layer.fillRect(x - 3, y - 34 - (index % 2) * 4, 6, 40);
+      }
+      layer.fillRect(startX, y - 24, gap * (postCount - 1), 5);
+      layer.fillRect(startX, y - 9, gap * (postCount - 1), 4);
+    };
+
+    const drawLowDressing = (startX, endX, y, tint = 0x5f7b41, alpha = 0.26) => {
+      layer.fillStyle(tint, alpha);
+      for (let x = startX; x < endX; x += 38) {
+        layer.fillRect(x, y - 8, 5, 8);
+        layer.fillRect(x + 7, y - 12, 5, 12);
+        layer.fillRect(x + 15, y - 7, 5, 7);
+        layer.fillRect(x + 23, y - 10, 5, 10);
+      }
+    };
+
+    const drawBunds = (startX, endX, y, alpha = 0.22) => {
+      layer.fillStyle(0x3f321f, alpha);
+      for (let x = startX; x < endX; x += 160) {
+        layer.fillRect(x, y + ((x / 160) % 2) * 4, 108, 7);
+      }
+      layer.fillStyle(0x6f7d45, alpha * 0.82);
+      for (let x = startX + 38; x < endX; x += 146) {
+        layer.fillRect(x, y - 12, 64, 12);
+      }
+    };
+
+    const drawBackgroundSack = (x, y, alpha = 0.22) => {
+      layer.fillStyle(0xb49b69, alpha);
+      layer.fillRoundedRect(x, y, 34, 30, 8);
+      layer.fillStyle(0x776140, alpha * 0.72);
+      layer.fillRect(x + 8, y + 9, 18, 3);
+    };
+
+    const drawBackgroundPail = (x, y, alpha = 0.2) => {
+      layer.fillStyle(0x6d7f84, alpha);
+      layer.fillRect(x, y + 8, 24, 20);
+      layer.fillStyle(0x8fa1a0, alpha * 0.78);
+      layer.fillRect(x + 3, y + 4, 18, 6);
+      layer.lineStyle(1, 0x596568, alpha);
+      layer.lineBetween(x + 5, y + 6, x + 12, y);
+      layer.lineBetween(x + 12, y, x + 20, y + 6);
+    };
+
+    const drawBackgroundCrate = (x, y, alpha = 0.2) => {
+      layer.fillStyle(0x80633f, alpha);
+      layer.fillRect(x, y, 48, 30);
+      layer.fillStyle(0x4f3b26, alpha * 0.64);
+      layer.fillRect(x + 5, y + 6, 38, 3);
+      layer.fillRect(x + 5, y + 19, 38, 3);
+      layer.fillRect(x + 22, y + 3, 4, 24);
+    };
+
+    const drawConcreteMarkers = (startX, y, count, gap, alpha = 0.22) => {
+      layer.fillStyle(0x9b9a8b, alpha);
+      for (let index = 0; index < count; index += 1) {
+        const x = startX + index * gap;
+        layer.fillRect(x, y - 32, 16, 34);
+        layer.fillStyle(0x6f725f, alpha * 0.56);
+        layer.fillRect(x + 2, y - 24, 12, 3);
+        layer.fillStyle(0x9b9a8b, alpha);
+      }
+    };
+
+    drawBunds(40, 1120, height - 190, 0.16);
+    drawFence(250, height - 214, 6, 72, 0.22);
+    drawLowDressing(70, 1080, height - 206, 0x5b7341, 0.22);
+    drawBackgroundCrate(610, height - 164, 0.14);
+
+    layer.fillStyle(0x6d604a, 0.36);
+    [1780, 1910, 2070, 2220].forEach((x) => {
+      layer.fillRect(x, height - 184, 14, 54);
+      layer.fillRect(x - 8, height - 190, 30, 8);
+    });
+    layer.fillStyle(0x7b6b4d, 0.28);
+    layer.fillRoundedRect(2194, height - 170, 58, 28, 6);
+    layer.fillStyle(0x445033, 0.24);
+    layer.fillRect(1760, height - 154, 540, 10);
+    drawLowDressing(1720, 2440, height - 162, 0x536b38, 0.3);
+    drawBunds(1640, 2450, height - 178, 0.18);
+    drawConcreteMarkers(2300, height - 158, 4, 52, 0.16);
+
+    drawFence(3020, height - 198, 5, 70, 0.24);
+    layer.lineStyle(2, 0x5b4b35, 0.36);
+    layer.lineBetween(3122, height - 206, 3465, height - 226);
+    layer.fillStyle(0xddd5bd, 0.34);
+    layer.fillRect(3198, height - 220, 24, 32);
+    layer.fillStyle(0xb7c1aa, 0.32);
+    layer.fillRect(3244, height - 218, 26, 28);
+    layer.fillStyle(0x8c5c45, 0.3);
+    layer.fillRect(3330, height - 222, 30, 34);
+    layer.fillStyle(0x6d6755, 0.36);
+    layer.fillRoundedRect(3512, height - 154, 26, 30, 5);
+    layer.fillStyle(0x5b402b, 0.3);
+    layer.fillRect(3090, height - 154, 54, 28);
+    layer.fillStyle(0x89704b, 0.28);
+    layer.fillRect(3146, height - 160, 40, 34);
+    drawBackgroundSack(3038, height - 158, 0.2);
+    drawBackgroundSack(3072, height - 164, 0.18);
+    drawBackgroundPail(3468, height - 166, 0.2);
+    drawBackgroundCrate(3588, height - 164, 0.16);
+    drawLowDressing(2920, 3700, height - 162, 0x59743d, 0.26);
+    drawBunds(2880, 3740, height - 180, 0.18);
+
+    drawFence(4540, height - 196, 8, 76, 0.26);
+    layer.fillStyle(0x5f4b32, 0.32);
+    layer.fillRect(4920, height - 168, 92, 28);
+    layer.fillRect(5024, height - 182, 46, 42);
+    layer.fillStyle(0x77644a, 0.28);
+    layer.fillRoundedRect(5124, height - 174, 62, 28, 4);
+    layer.fillStyle(0x4d5b38, 0.24);
+    layer.fillRect(4740, height - 152, 620, 8);
+    drawLowDressing(4380, 5560, height - 160, 0x5b7441, 0.24);
+    drawBunds(4300, 5580, height - 178, 0.18);
+    drawBackgroundSack(5210, height - 160, 0.16);
+    drawBackgroundPail(5660, height - 164, 0.14);
+
+    drawFence(6120, height - 192, 6, 84, 0.22);
+    drawLowDressing(6000, 7060, height - 164, 0x6d8e52, 0.36);
+    drawBunds(5960, 7100, height - 180, 0.16);
+    layer.fillStyle(0x79985d, 0.22);
+    [6200, 6420, 6680, 6900].forEach((x) => {
+      layer.fillRect(x - 38, height - 184, 76, 18);
+      layer.fillRect(x - 24, height - 196, 48, 12);
+    });
+  }
+
+  createBackgroundSign({
+    x,
+    y,
+    width,
+    height,
+    label,
+    sublabel = '',
+    depth = -6,
+    alpha = 0.28,
+    includePortrait = false,
+    scrollFactor = 0.97,
+  }) {
+    const panel = this.add.rectangle(0, 0, width, height, 0xd2c59f, 0.78)
+      .setStrokeStyle(1, 0x5f553f, 0.52);
+    const postLeft = this.add.rectangle(-width * 0.34, height * 0.5 + 12, 4, 24, 0x4c3b28, 0.48);
+    const postRight = this.add.rectangle(width * 0.34, height * 0.5 + 12, 4, 24, 0x4c3b28, 0.48);
+    const textOffsetX = includePortrait ? width * 0.12 : 0;
+    const labelText = this.add.text(textOffsetX, sublabel ? -7 : 0, label, {
+      fontFamily: '"Courier New", monospace',
+      fontSize: '9px',
+      color: '#4f4735',
+      align: 'center',
+      lineSpacing: 0,
+    }).setOrigin(0.5);
+    const children = [postLeft, postRight, panel, labelText];
+
+    if (sublabel) {
+      children.push(this.add.text(textOffsetX, 8, sublabel, {
+        fontFamily: '"Courier New", monospace',
+        fontSize: '8px',
+        color: '#5b513b',
+        align: 'center',
+      }).setOrigin(0.5));
+    }
+
+    if (includePortrait) {
+      children.push(this.add.circle(-width * 0.32, -1, 10, 0x76614c, 0.45));
+      children.push(this.add.rectangle(-width * 0.32, 13, 18, 12, 0x5d6d4f, 0.42));
+    }
+
+    return this.add.container(x, y, children).setDepth(depth).setAlpha(alpha).setScrollFactor(scrollFactor);
   }
 
   setRenderableTint(renderable, color) {
@@ -620,7 +1102,7 @@ export class GameScene extends Phaser.Scene {
       endingTree.setAlpha(hopeful ? 1 : 0.84);
     }
 
-    ['water-canal', 'water-river', 'water-river-outflow', 'water-ending'].forEach((id) => {
+    ['water-source-basin', 'water-canal', 'water-river', 'water-river-outflow', 'water-ending', 'water-pump-drip'].forEach((id) => {
       const water = this.decorationsById.get(id);
       if (!water) {
         return;
@@ -837,7 +1319,7 @@ export class GameScene extends Phaser.Scene {
     WORLD_LAYOUT.interactables.forEach((definition) => {
       const interactable = new Interactable(this, {
         ...definition,
-        tint: this.getInteractableTint(definition),
+        tint: definition.tint ?? this.getInteractableTint(definition),
       });
 
       interactable.setHandler((context, target) => this.handleInteractable(context, target));
@@ -1146,6 +1628,7 @@ export class GameScene extends Phaser.Scene {
 
   createRenderable(definition) {
     const textureExists = definition.textureKey && this.textures.exists(definition.textureKey);
+    const repeatTexture = textureExists && definition.repeatTexture && !definition.animationKey;
     const originX = definition.originX ?? 0.5;
     const originY = definition.originY ?? 0.5;
     let renderable;
@@ -1153,10 +1636,27 @@ export class GameScene extends Phaser.Scene {
     if (textureExists) {
       if (definition.animationKey) {
         renderable = this.add.sprite(definition.x, definition.y, definition.textureKey);
+        if (typeof renderable.setDisplaySize === 'function') {
+          renderable.setDisplaySize(definition.width, definition.height);
+        }
+      } else if (repeatTexture) {
+        renderable = this.add.tileSprite(
+          definition.x,
+          definition.y,
+          definition.width,
+          definition.height,
+          definition.textureKey,
+        );
+
+        const baseFrame = this.textures.getFrame(definition.textureKey);
+        if (baseFrame && typeof renderable.setTileScale === 'function') {
+          renderable.setTileScale(1, definition.height / baseFrame.height);
+        }
       } else {
         renderable = this.add.image(definition.x, definition.y, definition.textureKey);
+        renderable.setDisplaySize(definition.width, definition.height);
       }
-      renderable.setDisplaySize(definition.width, definition.height);
+
       if (definition.color !== undefined) {
         renderable.setTint(definition.color);
       }
@@ -1298,6 +1798,7 @@ export class GameScene extends Phaser.Scene {
           },
         });
       case 'projectPoster':
+      case 'waterPump':
       case 'canalDamage':
       case 'fertilizerSack':
       case 'debtLedger':
@@ -1797,7 +2298,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   requestDialogue(payload) {
+    const sourceInteractable = payload.sourceId ? this.interactablesById.get(payload.sourceId) : null;
     const complete = once(() => {
+      sourceInteractable?.playBaseAnimation?.();
       this.hideDialogueUi();
       this.releaseInteractionLock();
       payload.onComplete?.();
@@ -1819,6 +2322,7 @@ export class GameScene extends Phaser.Scene {
         }
         : undefined);
 
+    sourceInteractable?.playTalkAnimation?.();
     this.acquireInteractionLock();
 
     if (typeof this.services.dialogueSystem?.start === 'function') {
@@ -1930,8 +2434,23 @@ export class GameScene extends Phaser.Scene {
     this.setFlag(WORLD_FLAGS.WATER_FLOWING, true);
     const fullyOpened = endingField || this.getFlag(WORLD_FLAGS.ENDING_UNLOCKED);
     const announceEndingField = fullyOpened && !this.runtime.endingFieldWaterAnnounced;
+    const pumpDrip = this.decorationsById.get('water-pump-drip');
 
-    ['water-canal', 'water-river', 'water-river-outflow', 'water-ending'].forEach((id, index) => {
+    if (pumpDrip) {
+      pumpDrip.setVisible(true);
+      this.tweens.killTweensOf(pumpDrip);
+      this.tweens.add({
+        targets: pumpDrip,
+        alpha: 0,
+        duration: 420,
+        ease: 'Sine.Out',
+        onComplete: () => {
+          pumpDrip.setVisible(false);
+        },
+      });
+    }
+
+    ['water-river', 'water-river-outflow', 'water-ending'].forEach((id, index) => {
       const visual = this.decorationsById.get(id);
       if (!visual) {
         return;
@@ -1940,11 +2459,9 @@ export class GameScene extends Phaser.Scene {
       const shouldShow = id !== 'water-ending' || fullyOpened;
       const targetAlpha = id === 'water-ending'
         ? (fullyOpened ? 1 : 0)
-        : id === 'water-canal'
-          ? (fullyOpened ? 1 : 0.72)
-          : id === 'water-river'
-            ? (fullyOpened ? 0.94 : 0.78)
-            : (fullyOpened ? 0.88 : 0.68);
+        : id === 'water-river'
+          ? (fullyOpened ? 0.84 : 0.72)
+          : (fullyOpened ? 0.78 : 0.64);
 
       visual.setVisible(shouldShow);
       this.tweens.killTweensOf(visual);
@@ -2264,7 +2781,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.getFlag(WORLD_FLAGS.WATER_FLOWING)) {
-      ['water-canal', 'water-river', 'water-river-outflow', 'water-ending'].forEach((id) => {
+      ['water-river', 'water-river-outflow', 'water-ending'].forEach((id) => {
         const visual = this.decorationsById.get(id);
         if (!visual) {
           return;
@@ -2274,15 +2791,24 @@ export class GameScene extends Phaser.Scene {
         const shouldShow = id !== 'water-ending' || fullyOpened;
         const targetAlpha = id === 'water-ending'
           ? (fullyOpened ? 1 : 0)
-          : id === 'water-canal'
-            ? (fullyOpened ? 1 : 0.72)
-            : id === 'water-river'
-              ? (fullyOpened ? 0.94 : 0.78)
-              : (fullyOpened ? 0.88 : 0.68);
+          : id === 'water-river'
+            ? (fullyOpened ? 0.84 : 0.72)
+            : (fullyOpened ? 0.78 : 0.64);
 
         visual.setVisible(shouldShow);
         visual.setAlpha(targetAlpha);
       });
+    }
+
+    const pumpDrip = this.decorationsById.get('water-pump-drip');
+    if (pumpDrip) {
+      if (this.getFlag(WORLD_FLAGS.WATER_FLOWING)) {
+        pumpDrip.setVisible(false);
+        pumpDrip.setAlpha(0);
+      } else {
+        pumpDrip.setVisible(true);
+        pumpDrip.setAlpha(0.88);
+      }
     }
 
     const shadow = this.decorationsById.get('symbolic-shadow');

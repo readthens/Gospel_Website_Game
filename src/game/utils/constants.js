@@ -38,7 +38,14 @@ export const ASSET_KEYS = {
   elder: 'npc-elder',
   ground: 'ground',
   groundGreen: 'ground-green',
-  platform: 'platform',
+  platform: 'tile-platform-terrace-main',
+  platformSmall: 'tile-platform-terrace-small',
+  platformDry: 'tile-platform-terrace-dry',
+  platformBamboo: 'tile-platform-bamboo',
+  platformCanal: 'tile-platform-canal',
+  canalBasin: 'canal-basin',
+  canalTrench: 'canal-trench',
+  canalBroken: 'canal-broken',
   canalDry: 'canal-dry',
   canalFlow: 'canal-water-0',
   house: 'house',
@@ -49,9 +56,15 @@ export const ASSET_KEYS = {
   projectPoster: 'project-poster',
   shadowBoss: 'shadow-boss',
   dryCrop: 'dry-crop',
+  dryCropA: 'dry-crop-a',
+  dryCropB: 'dry-crop-b',
+  dryCropEdgeLeft: 'dry-crop-edge-left',
+  dryCropEdgeRight: 'dry-crop-edge-right',
   fertilizerSack: 'fertilizer-sack',
   debtLedger: 'debt-ledger',
   communityBoard: 'community-board',
+  pumpStation: 'pump-station',
+  pumpDrip: 'pump-drip-0',
   waterGate: 'water-gate',
   bambooFence: 'bamboo-fence',
   objectiveMarker: 'objective-marker',
@@ -93,3 +106,16 @@ export const OBJECTIVE_IDS = {
 }
 
 export const WATER_ANIMATION_KEY = 'water-flow'
+export const PUMP_DRIP_ANIMATION_KEY = 'pump-drip'
+
+export const PLAYER_ANIMATION_KEYS = {
+  idle: 'player-idle',
+  walk: 'player-walk',
+  jump: 'player-jump',
+  fall: 'player-fall',
+}
+
+export const FARMER_ANIMATION_KEYS = {
+  idle: 'npc-farmer-idle',
+  talk: 'npc-farmer-talk',
+}

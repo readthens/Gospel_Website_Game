@@ -641,18 +641,24 @@ export class UIScene extends Phaser.Scene {
         return;
       }
 
+      event.preventDefault();
+
       if (event.repeat || this.time.now < this.advanceInputCooldownUntil) {
         return;
       }
 
-      this.advanceInputCooldownUntil = this.time.now + ADVANCE_INPUT_COOLDOWN_MS;
-
       if (this.objectiveNoticeActive) {
+        this.advanceInputCooldownUntil = this.time.now + ADVANCE_INPUT_COOLDOWN_MS;
         this.dismissObjectiveNotice();
         return;
       }
 
       if (this.dialogueBox.visible) {
+        if (!this.dialogueBox.isReadyToAdvance()) {
+          return;
+        }
+
+        this.advanceInputCooldownUntil = this.time.now + ADVANCE_INPUT_COOLDOWN_MS;
         this.requestDialogueAdvance();
       }
     };

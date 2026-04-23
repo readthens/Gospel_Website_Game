@@ -34,6 +34,9 @@ class Interactable extends Phaser.GameObjects.Sprite {
     this.dialogueKey = settings.dialogueKey || null;
     this.taskId = settings.taskId || null;
     this.beat = settings.beat || null;
+    this.baseAnimationKey = settings.animationKey || null;
+    this.talkAnimationKey = settings.talkAnimationKey || null;
+    this.currentAnimationKey = null;
     this.requiredFlags = [...(settings.requiredFlags || [])];
     this.blockedFlags = [...(settings.blockedFlags || [])];
     this.hideUntilAvailable = Boolean(settings.hideUntilAvailable);
@@ -48,6 +51,7 @@ class Interactable extends Phaser.GameObjects.Sprite {
     this.setAlpha(settings.idleAlpha);
 
     this.defaultScale = this.scale;
+    this.playBaseAnimation();
   }
 
   setHandler(handler) {
@@ -58,6 +62,32 @@ class Interactable extends Phaser.GameObjects.Sprite {
   setCompleted(completed = true) {
     this.completed = completed;
     return this;
+  }
+
+  playAnimation(animationKey) {
+    if (!animationKey || !this.scene.anims.exists(animationKey)) {
+      return this;
+    }
+
+    const alreadyPlaying =
+      this.currentAnimationKey === animationKey
+      && this.anims?.currentAnim?.key === animationKey
+      && this.anims.isPlaying;
+
+    if (!alreadyPlaying) {
+      this.anims.play(animationKey, true);
+      this.currentAnimationKey = animationKey;
+    }
+
+    return this;
+  }
+
+  playBaseAnimation() {
+    return this.playAnimation(this.baseAnimationKey);
+  }
+
+  playTalkAnimation() {
+    return this.playAnimation(this.talkAnimationKey || this.baseAnimationKey);
   }
 
   meetsRequirements(context) {

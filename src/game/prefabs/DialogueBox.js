@@ -2,6 +2,19 @@ import Phaser from 'phaser';
 
 const DEFAULT_WIDTH = 900;
 const DEFAULT_HEIGHT = 188;
+const AVERAGE_READING_CHARS_PER_SECOND = 18;
+const TYPEWRITER_CHAR_DELAY_MS = 1000 / AVERAGE_READING_CHARS_PER_SECOND;
+const TYPEWRITER_INITIAL_DELAY_MS = 90;
+const TYPING_INDICATOR_INTERVAL_MS = 280;
+const PUNCTUATION_PAUSES_MS = Object.freeze({
+  '.': 150,
+  ',': 85,
+  '?': 180,
+  '!': 180,
+  ';': 110,
+  ':': 110,
+  '\n': 120,
+});
 
 function getDialogueSignature(dialogue = {}) {
   return [
@@ -14,6 +27,10 @@ function getDialogueSignature(dialogue = {}) {
   ].join('::');
 }
 
+function getTypewriterDelay(character) {
+  return TYPEWRITER_CHAR_DELAY_MS + (PUNCTUATION_PAUSES_MS[character] || 0);
+}
+
 export default class DialogueBox extends Phaser.GameObjects.Container {
   constructor(scene, x, y, width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT, config = {}) {
     super(scene, x, y);
@@ -23,6 +40,15 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.panelHeight = height;
     this.promptTween = null;
     this.currentSignature = null;
+    this.fullBodyText = '';
+    this.typewriterCharacters = [];
+    this.typewriterIndex = 0;
+    this.typewriterTimer = null;
+    this.typingIndicatorTimer = null;
+    this.typingIndicatorStep = 0;
+    this.typing = false;
+    this.pendingPrompt = 'Continue  ENTER / SPACE';
+    this.pendingShowContinue = true;
 
     this.shadow = scene.add.rectangle(0, 6, width, height, 0x04070a, 0.28);
     this.shadow.setOrigin(0.5);
@@ -156,7 +182,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     return this;
   }
 
-  setDialogue(dialogue = {}) {
+  setDialogue(dialogue = {}, { restartTypewriter = true } = {}) {
     const speaker = dialogue.speaker || dialogue.name || '';
     const body = dialogue.body || dialogue.text || '';
     const prompt = dialogue.continueText || dialogue.promptText || 'Continue  ENTER / SPACE';
@@ -170,7 +196,9 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     this.namePlate.setVisible(Boolean(speaker));
     this.nameText.setVisible(Boolean(speaker));
 
-    this.bodyText.setText(body);
+    if (restartTypewriter) {
+      this.startTypewriter(body, prompt, showContinue);
+    }
 
     if (lineIndex !== null && totalLines) {
       this.counterText.setVisible(true);
@@ -180,10 +208,6 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
       this.counterText.setText('');
     }
 
-    this.promptText.setText(prompt);
-    this.promptText.setVisible(showContinue);
-    this.promptCaret.setVisible(showContinue);
-
     this.applyResponsiveLayout();
     return this;
   }
@@ -192,13 +216,14 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     const nextSignature = getDialogueSignature(dialogue);
     const wasVisible = this.visible;
     const previousSignature = this.currentSignature;
+    const sameSignature = wasVisible && previousSignature === nextSignature;
 
-    this.setDialogue(dialogue);
+    this.setDialogue(dialogue, { restartTypewriter: !sameSignature });
     this.setVisible(true);
 
     this.scene.tweens.killTweensOf(this);
 
-    if (instant || (wasVisible && previousSignature === nextSignature)) {
+    if (instant || sameSignature) {
       this.setAlpha(1);
       return this;
     }
@@ -218,6 +243,7 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
   }
 
   hide(instant = false) {
+    this.stopTypewriter();
     this.scene.tweens.killTweensOf(this);
 
     if (instant) {
@@ -241,7 +267,116 @@ export default class DialogueBox extends Phaser.GameObjects.Container {
     return this;
   }
 
+  startTypewriter(body = '', prompt = 'Continue  ENTER / SPACE', showContinue = true) {
+    this.stopTypewriter();
+
+    this.fullBodyText = body;
+    this.typewriterCharacters = Array.from(body);
+    this.typewriterIndex = 0;
+    this.pendingPrompt = prompt;
+    this.pendingShowContinue = showContinue;
+
+    if (!this.typewriterCharacters.length) {
+      this.bodyText.setText('');
+      this.finishTypewriter();
+      return;
+    }
+
+    this.typing = true;
+    this.bodyText.setText('');
+    this.showTypingIndicator();
+    this.scheduleTypewriterTick(TYPEWRITER_INITIAL_DELAY_MS);
+  }
+
+  scheduleTypewriterTick(delay = TYPEWRITER_CHAR_DELAY_MS) {
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove(false);
+    }
+
+    this.typewriterTimer = this.scene.time.delayedCall(delay, () => {
+      this.typewriterTimer = null;
+      this.advanceTypewriter();
+    });
+  }
+
+  advanceTypewriter() {
+    if (!this.typing) {
+      return;
+    }
+
+    if (this.typewriterIndex >= this.typewriterCharacters.length) {
+      this.finishTypewriter();
+      return;
+    }
+
+    const nextCharacter = this.typewriterCharacters[this.typewriterIndex];
+    this.typewriterIndex += 1;
+    this.bodyText.setText(this.typewriterCharacters.slice(0, this.typewriterIndex).join(''));
+
+    if (this.typewriterIndex >= this.typewriterCharacters.length) {
+      this.finishTypewriter();
+      return;
+    }
+
+    this.scheduleTypewriterTick(getTypewriterDelay(nextCharacter));
+  }
+
+  showTypingIndicator() {
+    this.stopTypingIndicator();
+    this.typingIndicatorStep = 0;
+    this.promptText.setVisible(true);
+    this.promptCaret.setVisible(false);
+    this.promptText.setText('Typing');
+
+    this.typingIndicatorTimer = this.scene.time.addEvent({
+      delay: TYPING_INDICATOR_INTERVAL_MS,
+      loop: true,
+      callback: () => {
+        const dots = '.'.repeat((this.typingIndicatorStep % 3) + 1);
+        this.typingIndicatorStep += 1;
+        this.promptText.setText(`Typing${dots}`);
+      },
+    });
+  }
+
+  finishTypewriter() {
+    this.typing = false;
+    this.bodyText.setText(this.fullBodyText);
+    this.stopTypingIndicator();
+    this.promptText.setText(this.pendingPrompt);
+    this.promptText.setVisible(this.pendingShowContinue);
+    this.promptCaret.setText('>');
+    this.promptCaret.setVisible(this.pendingShowContinue);
+  }
+
+  stopTypingIndicator() {
+    if (this.typingIndicatorTimer) {
+      this.typingIndicatorTimer.remove(false);
+      this.typingIndicatorTimer = null;
+    }
+  }
+
+  stopTypewriter() {
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove(false);
+      this.typewriterTimer = null;
+    }
+
+    this.stopTypingIndicator();
+    this.typing = false;
+  }
+
+  isTyping() {
+    return this.typing;
+  }
+
+  isReadyToAdvance() {
+    return this.visible && !this.isTyping();
+  }
+
   destroy(fromScene) {
+    this.stopTypewriter();
+
     if (this.promptTween) {
       this.promptTween.stop();
       this.promptTween = null;
